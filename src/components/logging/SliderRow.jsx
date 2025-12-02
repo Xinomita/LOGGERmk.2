@@ -77,21 +77,13 @@ export default function SliderRow({
     return delta > 0 ? `+${formatted}` : `-${formatted}`;
   };
 
-  // Format timestamp
+  // Format timestamp (always show date + time)
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return null;
     const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-
+    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-
-    if (isToday) {
-      return timeStr;
-    } else {
-      const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      return `${dateStr}, ${timeStr}`;
-    }
+    return `${dateStr}, ${timeStr}`;
   };
 
   const delta = getDelta();
@@ -183,8 +175,8 @@ export default function SliderRow({
 
         {/* Value container with delta and timestamp */}
         <div className="flex flex-col items-end justify-center min-w-[50px] z-10">
-          {/* Change indicator */}
-          {deltaStr && (
+          {/* Change indicator - only show when slider is active */}
+          {isActive && deltaStr && (
             <div className="flex items-center gap-0.5 h-[9px] leading-none mb-[-1px]">
               <span className="text-[7px] font-bold" style={{ color: delta > 0 ? '#16a34a' : '#dc2626' }}>
                 {delta > 0 ? '▲' : '▼'}
@@ -203,8 +195,8 @@ export default function SliderRow({
             {formatValue(committedValue)}
           </span>
 
-          {/* Timestamp */}
-          {timestampStr && (
+          {/* Timestamp - only show when slider is active */}
+          {isActive && timestampStr && (
             <span className="text-[7px] font-medium text-gray-400 tracking-tight leading-none mt-[-1px]">
               {timestampStr}
             </span>
