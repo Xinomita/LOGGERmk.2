@@ -99,7 +99,6 @@ export default function SliderRow({
     return speed;
   };
 
-  const animationDirection = delta && delta < 0 ? -5 : 5; // Reverse for negative changes
   const animationSpeed = getAnimationSpeed(delta);
 
   // Convert hex color to rgb for opacity effects
@@ -182,7 +181,7 @@ export default function SliderRow({
             background: isActive
               ? `repeating-linear-gradient(90deg, ${color} 0px, ${color} 2px, transparent 2px, transparent 5px)`
               : 'repeating-linear-gradient(90deg, #bbb 0px, #bbb 2px, transparent 2px, transparent 5px)',
-            animation: isActive ? `dash-move-${delta > 0 ? 'right' : 'left'} ${animationSpeed}s linear infinite` : 'none',
+            animation: isActive ? `dash-move-${committedValue > 0 ? 'right' : 'left'} ${animationSpeed}s linear infinite` : 'none',
             backgroundSize: '5px 1px',
           }}
         />
