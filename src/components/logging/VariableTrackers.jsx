@@ -55,16 +55,20 @@ const SLIDER_CONFIGS = [
     stepSize: 1,
     unit: '/10',
     color: '#0891b2',
-    previousValue: -2,  // 3 -> 5 = +2 change
+    previousValue: 0,  // Was 5/10, now 7/10 = +2 change
     lastUpdated: new Date(Date.now() - 24 * 60 * 60 * 1000)  // Yesterday
   },
 ];
 
 export default function VariableTrackers() {
-  // State for each slider variable
-  const [sliderValues, setSliderValues] = useState(
-    SLIDER_CONFIGS.reduce((acc, config) => ({ ...acc, [config.id]: 0 }), {})
-  );
+  // State for each slider variable (with example logged values)
+  const [sliderValues, setSliderValues] = useState({
+    bodyweight: 2,    // 82kg (baseline 80 + 2)
+    waist: -0.5,      // 74.5cm (baseline 75 - 0.5)
+    sleep: 0.5,       // 7.5hrs (baseline 7 + 0.5)
+    energy: 0,        // Not logged yet
+    mood: 2,          // 7/10 (baseline 5 + 2)
+  });
 
   const handleSliderChange = (id, value) => {
     setSliderValues(prev => ({ ...prev, [id]: value }));
