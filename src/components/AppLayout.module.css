@@ -1,0 +1,44 @@
+.shell {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.shellInner {
+  margin: 0 auto;
+  width: min(100%, 420px);
+  min-height: 100vh;
+  background: #fff;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 48px;
+}
+
+.section {
+  width: 100%;
+  padding: 0 20px;
+}
+
+.section + .section {
+  padding-top: 18px;
+}
+
+@media (min-width: 768px) {
+  .shellInner {
+    width: min(100%, 640px);
+  }
+
+  .section {
+    padding: 0 32px;
+  }
+
+  .section + .section {
+    padding-top: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .shellInner {
+    width: min(100%, 720px);
+  }
+}
