@@ -171,6 +171,26 @@ export default function SliderRow({
           pointerEvents: isDragging ? 'auto' : 'none',
         }}
       >
+        {/* Grid lines for each step */}
+        <div className="absolute inset-0 flex justify-between items-center px-1">
+          {Array.from({ length: Math.floor((maxAbsValue * 2) / stepSize) + 1 }).map((_, i) => {
+            const val = -maxAbsValue + (i * stepSize);
+            const isCenter = Math.abs(val) < stepSize / 2;
+            const isMajor = Math.abs(val) % (stepSize * 4) < stepSize / 2;
+            return (
+              <div
+                key={i}
+                style={{
+                  width: '1px',
+                  height: isCenter ? '100%' : isMajor ? '35%' : '15%',
+                  backgroundColor: isCenter ? colorWithOpacity(0.5) : colorWithOpacity(0.12),
+                  opacity: isCenter ? 1 : isMajor ? 0.8 : 0.4,
+                }}
+              />
+            );
+          })}
+        </div>
+
         {/* Center line */}
         <div
           className="absolute left-1/2 top-0 bottom-0 w-px"
