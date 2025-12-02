@@ -34,6 +34,7 @@ export default function SliderRow({
   const currentValue = isControlled ? controlledValue : internalValue;
 
   const [isDragging, setIsDragging] = useState(false);
+  const [committedValue, setCommittedValue] = useState(currentValue);
   const trackRef = useRef(null);
 
   // Value <-> Percent conversion
@@ -78,62 +79,161 @@ export default function SliderRow({
   const handlePointerUp = useCallback((e) => {
     if (!isDragging) return;
     setIsDragging(false);
+    setCommittedValue(currentValue);
     if (trackRef.current) trackRef.current.releasePointerCapture(e.pointerId);
-  }, [isDragging]);
+  }, [isDragging, currentValue]);
 
-  const isActive = currentValue !== defaultValue;
+  const isActive = committedValue !== defaultValue;
+  const currentPercent = valueToPercent(currentValue);
 
   return (
     <div
-      className="h-9 flex items-center px-2 border-b border-gray-200 cursor-pointer relative select-none"
-      style={{ touchAction: 'none' }}
+      className="h-9 flex items-center relative select-none overflow-hidden transition-colors duration-100"
+      style={{
+        touchAction: 'none',
+        backgroundColor: isDragging ? '#050508' : '#fff',
+      }}
     >
-      {/* Left accent bar */}
-      {isActive && (
-        <div
-          className="absolute left-0 top-0 bottom-0 w-[3px]"
-          style={{ background: color }}
-        />
-      )}
-
-      {/* Label */}
-      <span className="text-[13px] font-bold tracking-wide min-w-[105px]">
-        {label}
-      </span>
-
-      {/* Leader line (animated when active) */}
+      {/* IDLE STATE - White background */}
       <div
-        className={`flex-1 h-px mx-1.5 ${isActive ? 'animate-dash' : ''}`}
+        className="absolute inset-0 flex items-center px-2"
         style={{
-          background: isActive
-            ? `repeating-linear-gradient(90deg, ${color} 0px, ${color} 2px, transparent 2px, transparent 5px)`
-            : 'repeating-linear-gradient(90deg, #bbb 0px, #bbb 2px, transparent 2px, transparent 5px)'
+          opacity: isDragging ? 0 : 1,
+          transition: 'opacity 100ms ease-out',
+          pointerEvents: isDragging ? 'none' : 'auto',
         }}
-      />
-
-      {/* Value */}
-      <span
-        className="text-[16px] font-bold min-w-[50px] text-right tabular-nums"
-        style={{ color: isActive ? color : '#000' }}
       >
-        {formatValue(currentValue)}
-      </span>
+        {/* Left accent bar */}
+        {isActive && (
+          <div
+            className="absolute left-0 top-0 bottom-0 w-[3px]"
+            style={{ background: color }}
+          />
+        )}
 
-      {/* Unit */}
-      <span className="text-[10px] font-semibold text-gray-600 ml-0.5 min-w-[24px]">
-        {unit}
-      </span>
+        {/* Label */}
+        <span className="text-[13px] font-bold tracking-wide min-w-[105px] z-10">
+          {label}
+        </span>
 
-      {/* Indicator dot */}
+        {/* Leader line (animated when active) */}
+        <div
+          className={`flex-1 h-px mx-1.5 ${isActive ? 'animate-dash' : ''}`}
+          style={{
+            background: isActive
+              ? `repeating-linear-gradient(90deg, ${color} 0px, ${color} 2px, transparent 2px, transparent 5px)`
+              : 'repeating-linear-gradient(90deg, #bbb 0px, #bbb 2px, transparent 2px, transparent 5px)'
+          }}
+        />
+
+        {/* Value */}
+        <span
+          className="text-[16px] font-bold min-w-[50px] text-right tabular-nums z-10"
+          style={{ color: isActive ? color : '#000' }}
+        >
+          {formatValue(committedValue)}
+        </span>
+
+        {/* Unit */}
+        <span className="text-[10px] font-semibold text-gray-600 ml-0.5 min-w-[24px] z-10">
+          {unit}
+        </span>
+
+        {/* Indicator dot */}
+        <div
+          className="w-1.5 h-1.5 rounded-full ml-1.5 z-10"
+          style={{ background: isActive ? color : '#ccc' }}
+        />
+
+        {/* Bottom border */}
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gray-200" />
+      </div>
+
+      {/* ACTIVE STATE - Black background when dragging */}
       <div
-        className="w-1.5 h-1.5 rounded-full ml-1.5"
-        style={{ background: isActive ? color : '#ccc' }}
-      />
+        className="absolute inset-0 flex items-center justify-center"
+        style={{
+          opacity: isDragging ? 1 : 0,
+          transition: 'opacity 80ms ease-out',
+          pointerEvents: isDragging ? 'auto' : 'none',
+        }}
+      >
+        {/* Center line */}
+        <div
+          className="absolute left-1/2 top-0 bottom-0 w-px"
+          style={{
+            backgroundColor: 'rgba(96, 165, 250, 0.3)',
+            transform: 'translateX(-50%)'
+          }}
+        />
+
+        {/* Fill from center to handle */}
+        {currentValue !== 0 && (
+          <div
+            className="absolute top-0 bottom-0"
+            style={{
+              left: currentValue > 0 ? '50%' : `${currentPercent}%`,
+              width: `${Math.abs(currentPercent - 50)}%`,
+              background: currentValue > 0
+                ? 'linear-gradient(90deg, rgba(96,165,250,0.15) 0%, rgba(96,165,250,0.05) 100%)'
+                : 'linear-gradient(270deg, rgba(96,165,250,0.15) 0%, rgba(96,165,250,0.05) 100%)',
+            }}
+          />
+        )}
+
+        {/* Handle */}
+        <div
+          className="absolute top-0 bottom-0 w-px"
+          style={{
+            left: `${currentPercent}%`,
+            backgroundColor: '#93C5FD',
+            transform: 'translateX(-50%)',
+            boxShadow: '0 0 8px rgba(147, 197, 253, 0.4)'
+          }}
+        />
+
+        {/* Live value display */}
+        <div
+          className="absolute top-1/2 left-1/2"
+          style={{ transform: 'translate(-50%, -50%)' }}
+        >
+          <span
+            className="font-mono font-semibold px-2 py-0.5 text-[11px]"
+            style={{
+              color: '#93C5FD',
+              backgroundColor: 'rgba(5, 5, 8, 0.95)',
+              letterSpacing: '0.08em',
+            }}
+          >
+            {formatValue(currentValue)}
+          </span>
+        </div>
+
+        {/* Min/Max labels */}
+        <div
+          className="absolute left-2 top-1/2 font-mono text-[9px]"
+          style={{
+            transform: 'translateY(-50%)',
+            color: 'rgba(147, 197, 253, 0.35)'
+          }}
+        >
+          {baseline - maxAbsValue}
+        </div>
+        <div
+          className="absolute right-2 top-1/2 font-mono text-[9px]"
+          style={{
+            transform: 'translateY(-50%)',
+            color: 'rgba(147, 197, 253, 0.35)'
+          }}
+        >
+          {baseline + maxAbsValue}
+        </div>
+      </div>
 
       {/* Invisible hit area for drag */}
       <div
         ref={trackRef}
-        className="absolute inset-0 z-10 cursor-grab active:cursor-grabbing"
+        className="absolute inset-0 z-20 cursor-grab active:cursor-grabbing"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
