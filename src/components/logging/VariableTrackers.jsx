@@ -3,11 +3,61 @@ import SliderRow from './SliderRow';
 
 // Configuration for slider variables
 const SLIDER_CONFIGS = [
-  { id: 'bodyweight', label: 'BODYWEIGHT', baseline: 80, maxAbsValue: 10, stepSize: 0.5, unit: 'kg', color: '#2563eb' },
-  { id: 'waist', label: 'WAIST', baseline: 75, maxAbsValue: 8, stepSize: 0.5, unit: 'cm', color: '#d97706' },
-  { id: 'sleep', label: 'SLEEP', baseline: 7, maxAbsValue: 3, stepSize: 0.25, unit: 'hrs', color: '#16a34a' },
-  { id: 'energy', label: 'ENERGY', baseline: 5, maxAbsValue: 5, stepSize: 0.5, unit: '/10', color: '#db2777' },
-  { id: 'mood', label: 'MOOD', baseline: 5, maxAbsValue: 5, stepSize: 1, unit: '/10', color: '#0891b2' },
+  {
+    id: 'bodyweight',
+    label: 'BODYWEIGHT',
+    baseline: 80,
+    maxAbsValue: 10,
+    stepSize: 0.5,
+    unit: 'kg',
+    color: '#2563eb',
+    previousValue: -1,  // 79kg -> 82kg = +3kg change
+    lastUpdated: new Date(Date.now() - 2 * 60 * 60 * 1000)  // 2 hours ago
+  },
+  {
+    id: 'waist',
+    label: 'WAIST',
+    baseline: 75,
+    maxAbsValue: 8,
+    stepSize: 0.5,
+    unit: 'cm',
+    color: '#d97706',
+    previousValue: 1,  // 76cm -> 75.5cm = -0.5cm change
+    lastUpdated: new Date()  // Just now
+  },
+  {
+    id: 'sleep',
+    label: 'SLEEP',
+    baseline: 7,
+    maxAbsValue: 3,
+    stepSize: 0.25,
+    unit: 'hrs',
+    color: '#16a34a',
+    previousValue: -0.5,  // 6.5hrs -> 7hrs = +0.5hrs change
+    lastUpdated: new Date(new Date().setHours(8, 30, 0, 0))  // This morning 8:30 AM
+  },
+  {
+    id: 'energy',
+    label: 'ENERGY',
+    baseline: 5,
+    maxAbsValue: 5,
+    stepSize: 0.5,
+    unit: '/10',
+    color: '#db2777',
+    previousValue: null,  // No previous value
+    lastUpdated: null
+  },
+  {
+    id: 'mood',
+    label: 'MOOD',
+    baseline: 5,
+    maxAbsValue: 5,
+    stepSize: 1,
+    unit: '/10',
+    color: '#0891b2',
+    previousValue: -2,  // 3 -> 5 = +2 change
+    lastUpdated: new Date(Date.now() - 24 * 60 * 60 * 1000)  // Yesterday
+  },
 ];
 
 export default function VariableTrackers() {
@@ -50,6 +100,8 @@ export default function VariableTrackers() {
           stepSize={config.stepSize}
           value={sliderValues[config.id]}
           onChange={(val) => handleSliderChange(config.id, val)}
+          previousValue={config.previousValue}
+          lastUpdated={config.lastUpdated}
         />
       ))}
 

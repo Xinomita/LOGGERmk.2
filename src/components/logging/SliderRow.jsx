@@ -13,6 +13,8 @@ import React, { useState, useRef, useCallback } from 'react';
  * - maxAbsValue: Range from baseline (e.g., 20 means 60-100)
  * - stepSize: Increment size (e.g., 0.5, 1, 5)
  * - disabled: Disable interaction
+ * - previousValue: Previous logged value (for change indicator)
+ * - lastUpdated: Timestamp of last log (Date object or ISO string)
  */
 
 export default function SliderRow({
@@ -28,6 +30,9 @@ export default function SliderRow({
   maxAbsValue = 10,
   stepSize = 1,
   disabled = false,
+
+  previousValue = null,
+  lastUpdated = null,
 }) {
   const [internalValue, setInternalValue] = useState(defaultValue);
   const isControlled = controlledValue !== undefined;
@@ -55,6 +60,43 @@ export default function SliderRow({
     const decimalPlaces = stepStr.includes('.') ? stepStr.split('.')[1].length : 0;
     return decimalPlaces === 0 ? actualValue.toString() : actualValue.toFixed(decimalPlaces);
   };
+
+  // Calculate change from previous value
+  const getDelta = () => {
+    if (previousValue === null) return null;
+    const currentAbsolute = baseline + committedValue;
+    const previousAbsolute = baseline + previousValue;
+    return currentAbsolute - previousAbsolute;
+  };
+
+  const formatDelta = (delta) => {
+    if (delta === null || delta === 0) return null;
+    const stepStr = stepSize.toString();
+    const decimalPlaces = stepStr.includes('.') ? stepStr.split('.')[1].length : 0;
+    const formatted = decimalPlaces === 0 ? Math.abs(delta).toString() : Math.abs(delta).toFixed(decimalPlaces);
+    return delta > 0 ? `+${formatted}` : `-${formatted}`;
+  };
+
+  // Format timestamp
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return null;
+    const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+
+    const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+    if (isToday) {
+      return timeStr;
+    } else {
+      const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return `${dateStr}, ${timeStr}`;
+    }
+  };
+
+  const delta = getDelta();
+  const deltaStr = formatDelta(delta);
+  const timestampStr = formatTimestamp(lastUpdated);
 
   // Convert hex color to rgb for opacity effects
   const hexToRgb = (hex) => {
@@ -139,13 +181,35 @@ export default function SliderRow({
           }}
         />
 
-        {/* Value */}
-        <span
-          className="text-[16px] font-bold min-w-[50px] text-right tabular-nums z-10"
-          style={{ color: isActive ? color : '#000' }}
-        >
-          {formatValue(committedValue)}
-        </span>
+        {/* Value container with delta and timestamp */}
+        <div className="flex flex-col items-end justify-center min-w-[50px] z-10">
+          {/* Change indicator */}
+          {deltaStr && (
+            <div className="flex items-center gap-0.5 h-[9px] leading-none mb-[-1px]">
+              <span className="text-[7px] font-bold" style={{ color: delta > 0 ? '#16a34a' : '#dc2626' }}>
+                {delta > 0 ? '▲' : '▼'}
+              </span>
+              <span className="text-[7px] font-bold tracking-tight" style={{ color: delta > 0 ? '#16a34a' : '#dc2626' }}>
+                {deltaStr}
+              </span>
+            </div>
+          )}
+
+          {/* Main value */}
+          <span
+            className="text-[16px] font-bold text-right tabular-nums leading-none"
+            style={{ color: isActive ? color : '#000' }}
+          >
+            {formatValue(committedValue)}
+          </span>
+
+          {/* Timestamp */}
+          {timestampStr && (
+            <span className="text-[7px] font-medium text-gray-400 tracking-tight leading-none mt-[-1px]">
+              {timestampStr}
+            </span>
+          )}
+        </div>
 
         {/* Unit */}
         <span className="text-[10px] font-semibold text-gray-600 ml-0.5 min-w-[24px] z-10">
