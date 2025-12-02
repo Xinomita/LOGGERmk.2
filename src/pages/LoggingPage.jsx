@@ -1,40 +1,23 @@
 import React from 'react';
+import Header from '../components/logging/Header';
+import StatusBanner from '../components/logging/StatusBanner';
+import VariableGraph from '../components/logging/VariableGraph';
+import GraphLegend from '../components/logging/GraphLegend';
+import VariableTrackers from '../components/logging/VariableTrackers';
+import NotesButton from '../components/logging/NotesButton';
+import QuickCompoundAdd from '../components/logging/QuickCompoundAdd';
 
 export default function LoggingPage() {
   return (
-    <div className="min-h-screen bg-white">
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-6">Logging Page</h1>
-        <p className="text-gray-600">
-          Daily data entry, variable tracking, quick compound logging
-        </p>
-
-        <div className="mt-8 space-y-4">
-          <section className="border-2 border-black p-6">
-            <h2 className="text-xl font-bold mb-2">Trend Banner</h2>
-            <p className="text-sm text-gray-500">Scrolling trends and warnings will appear here</p>
-          </section>
-
-          <section className="border-2 border-black p-6">
-            <h2 className="text-xl font-bold mb-2">Variable Graph</h2>
-            <p className="text-sm text-gray-500">Multi-line graph with shared Y-axis will appear here</p>
-          </section>
-
-          <section className="border-2 border-black p-6">
-            <h2 className="text-xl font-bold mb-2">Variable Trackers</h2>
-            <p className="text-sm text-gray-500">Slider and categorical inputs will appear here</p>
-          </section>
-
-          <section className="border-2 border-black p-6">
-            <h2 className="text-xl font-bold mb-2">Notes</h2>
-            <p className="text-sm text-gray-500">Plaintext notes input will appear here</p>
-          </section>
-
-          <section className="border-2 border-black p-6">
-            <h2 className="text-xl font-bold mb-2">Quick Compound Add</h2>
-            <p className="text-sm text-gray-500">Quick-add form will appear here</p>
-          </section>
-        </div>
+    <div className="min-h-screen bg-[#0a0a0a] flex items-start justify-center p-5">
+      <div className="w-full max-w-[375px] bg-white border-[3px] border-black font-mono">
+        <Header />
+        <StatusBanner />
+        <VariableGraph />
+        <GraphLegend />
+        <VariableTrackers />
+        <NotesButton />
+        <QuickCompoundAdd />
       </div>
     </div>
   );
