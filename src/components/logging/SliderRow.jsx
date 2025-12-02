@@ -95,14 +95,11 @@ export default function SliderRow({
     // Calculate how far from center (0-1 range, as percentage of maxAbsValue)
     const percentageOfRange = Math.abs(committedValue) / maxAbsValue;
 
-    // Use cubic easing for smooth, progressive acceleration
-    // Changes are subtle near center, more dramatic near extremes
-    const easedPercentage = Math.pow(percentageOfRange, 3);
-
+    // Linear mapping for consistent progression
     // Map to speed range: 0.8s (slow at center) to 0.25s (fast at extremes)
     const minSpeed = 0.25; // Fastest (at max/min)
     const maxSpeed = 0.8;  // Slowest (at center)
-    const speed = maxSpeed - (easedPercentage * (maxSpeed - minSpeed));
+    const speed = maxSpeed - (percentageOfRange * (maxSpeed - minSpeed));
 
     return speed;
   };
