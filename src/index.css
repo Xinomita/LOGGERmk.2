@@ -70,12 +70,17 @@
     }
   }
 @layer utilities {
-  @keyframes dash-move {
+  @keyframes dash-move-right {
     0% { background-position: 0 0; }
     100% { background-position: 5px 0; }
   }
 
+  @keyframes dash-move-left {
+    0% { background-position: 0 0; }
+    100% { background-position: -5px 0; }
+  }
+
   .animate-dash {
-    animation: dash-move 0.4s linear infinite;
+    animation: dash-move-right 0.4s linear infinite;
   }
 }

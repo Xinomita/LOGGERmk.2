@@ -90,6 +90,18 @@ export default function SliderRow({
   const deltaStr = formatDelta(delta);
   const timestampStr = formatTimestamp(lastUpdated);
 
+  // Calculate animation based on delta
+  const getAnimationSpeed = (delta) => {
+    if (delta === null || delta === 0) return 0.4;
+    const intensity = Math.abs(delta);
+    // Faster animation for larger changes (0.15s to 0.6s range)
+    const speed = Math.max(0.15, Math.min(0.6, 0.6 - (intensity * 0.05)));
+    return speed;
+  };
+
+  const animationDirection = delta && delta < 0 ? -5 : 5; // Reverse for negative changes
+  const animationSpeed = getAnimationSpeed(delta);
+
   // Convert hex color to rgb for opacity effects
   const hexToRgb = (hex) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -165,11 +177,13 @@ export default function SliderRow({
 
         {/* Leader line (animated when active) */}
         <div
-          className={`flex-1 h-px mx-1.5 ${isActive ? 'animate-dash' : ''}`}
+          className="flex-1 h-px mx-1.5"
           style={{
             background: isActive
               ? `repeating-linear-gradient(90deg, ${color} 0px, ${color} 2px, transparent 2px, transparent 5px)`
-              : 'repeating-linear-gradient(90deg, #bbb 0px, #bbb 2px, transparent 2px, transparent 5px)'
+              : 'repeating-linear-gradient(90deg, #bbb 0px, #bbb 2px, transparent 2px, transparent 5px)',
+            animation: isActive ? `dash-move-${delta > 0 ? 'right' : 'left'} ${animationSpeed}s linear infinite` : 'none',
+            backgroundSize: '5px 1px',
           }}
         />
 
