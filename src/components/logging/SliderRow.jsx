@@ -6,7 +6,7 @@ import React, { useState, useRef, useCallback } from 'react';
  * Props:
  * - label: Display name (e.g., "BODYWEIGHT")
  * - unit: Unit string (e.g., "kg", "/10", "hrs")
- * - color: Accent color when active
+ * - color: Accent color (used for both idle active states and active dragging state)
  * - value/onChange: Controlled mode
  * - defaultValue: Uncontrolled mode
  * - baseline: Center value (e.g., 80 for bodyweight)
@@ -55,6 +55,19 @@ export default function SliderRow({
     const decimalPlaces = stepStr.includes('.') ? stepStr.split('.')[1].length : 0;
     return decimalPlaces === 0 ? actualValue.toString() : actualValue.toFixed(decimalPlaces);
   };
+
+  // Convert hex color to rgb for opacity effects
+  const hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : { r: 37, g: 99, b: 235 }; // fallback blue
+  };
+
+  const rgb = hexToRgb(color);
+  const colorWithOpacity = (opacity) => `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`;
 
   // Pointer event handlers
   const handlePointerDown = useCallback((e) => {
@@ -162,7 +175,7 @@ export default function SliderRow({
         <div
           className="absolute left-1/2 top-0 bottom-0 w-px"
           style={{
-            backgroundColor: 'rgba(96, 165, 250, 0.3)',
+            backgroundColor: colorWithOpacity(0.3),
             transform: 'translateX(-50%)'
           }}
         />
@@ -175,8 +188,8 @@ export default function SliderRow({
               left: currentValue > 0 ? '50%' : `${currentPercent}%`,
               width: `${Math.abs(currentPercent - 50)}%`,
               background: currentValue > 0
-                ? 'linear-gradient(90deg, rgba(96,165,250,0.15) 0%, rgba(96,165,250,0.05) 100%)'
-                : 'linear-gradient(270deg, rgba(96,165,250,0.15) 0%, rgba(96,165,250,0.05) 100%)',
+                ? `linear-gradient(90deg, ${colorWithOpacity(0.15)} 0%, ${colorWithOpacity(0.05)} 100%)`
+                : `linear-gradient(270deg, ${colorWithOpacity(0.15)} 0%, ${colorWithOpacity(0.05)} 100%)`,
             }}
           />
         )}
@@ -186,9 +199,9 @@ export default function SliderRow({
           className="absolute top-0 bottom-0 w-px"
           style={{
             left: `${currentPercent}%`,
-            backgroundColor: '#93C5FD',
+            backgroundColor: color,
             transform: 'translateX(-50%)',
-            boxShadow: '0 0 8px rgba(147, 197, 253, 0.4)'
+            boxShadow: `0 0 8px ${colorWithOpacity(0.5)}`
           }}
         />
 
@@ -200,7 +213,7 @@ export default function SliderRow({
           <span
             className="font-mono font-semibold px-2 py-0.5 text-[11px]"
             style={{
-              color: '#93C5FD',
+              color: color,
               backgroundColor: 'rgba(5, 5, 8, 0.95)',
               letterSpacing: '0.08em',
             }}
@@ -214,7 +227,7 @@ export default function SliderRow({
           className="absolute left-2 top-1/2 font-mono text-[9px]"
           style={{
             transform: 'translateY(-50%)',
-            color: 'rgba(147, 197, 253, 0.35)'
+            color: colorWithOpacity(0.35)
           }}
         >
           {baseline - maxAbsValue}
@@ -223,7 +236,7 @@ export default function SliderRow({
           className="absolute right-2 top-1/2 font-mono text-[9px]"
           style={{
             transform: 'translateY(-50%)',
-            color: 'rgba(147, 197, 253, 0.35)'
+            color: colorWithOpacity(0.35)
           }}
         >
           {baseline + maxAbsValue}
