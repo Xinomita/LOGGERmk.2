@@ -1,62 +1,56 @@
-import React from 'react';
+import React, { useState } from 'react';
+import SliderRow from './SliderRow';
+
+// Configuration for slider variables
+const SLIDER_CONFIGS = [
+  { id: 'bodyweight', label: 'BODYWEIGHT', baseline: 80, maxAbsValue: 10, stepSize: 0.5, unit: 'kg', color: '#2563eb' },
+  { id: 'waist', label: 'WAIST', baseline: 75, maxAbsValue: 8, stepSize: 0.5, unit: 'cm', color: '#d97706' },
+  { id: 'sleep', label: 'SLEEP', baseline: 7, maxAbsValue: 3, stepSize: 0.25, unit: 'hrs', color: '#16a34a' },
+  { id: 'energy', label: 'ENERGY', baseline: 5, maxAbsValue: 5, stepSize: 0.5, unit: '/10', color: '#db2777' },
+  { id: 'mood', label: 'MOOD', baseline: 5, maxAbsValue: 5, stepSize: 1, unit: '/10', color: '#0891b2' },
+];
 
 export default function VariableTrackers() {
-  // Placeholder data
-  const sliderVars = [
-    { label: 'BODYWEIGHT', value: '80.5', unit: 'kg', color: '#2563eb', active: true },
-    { label: 'WAIST', value: '74.5', unit: 'cm', color: '#d97706', active: false },
-    { label: 'SLEEP', value: '7.50', unit: 'hrs', color: '#16a34a', active: false },
-    { label: 'ENERGY', value: '7.0', unit: '/10', color: '#db2777', active: false },
-    { label: 'MOOD', value: '8.0', unit: '/10', color: '#0891b2', active: false },
-  ];
+  // State for each slider variable
+  const [sliderValues, setSliderValues] = useState(
+    SLIDER_CONFIGS.reduce((acc, config) => ({ ...acc, [config.id]: 0 }), {})
+  );
 
+  const handleSliderChange = (id, value) => {
+    setSliderValues(prev => ({ ...prev, [id]: value }));
+  };
+
+  // Categorical options
   const catOptions = ['Low', 'Normal', 'Elevated', 'Signif.'];
-  const binaryVars = [
-    { label: 'WORKOUT', on: true },
-    { label: 'CAFFEINE', on: true },
-    { label: 'ALCOHOL', on: false },
-    { label: 'FASTED AM', on: false },
-  ];
+  const [selectedCat, setSelectedCat] = useState('Normal');
+
+  // Binary variables
+  const [binaryStates, setBinaryStates] = useState({
+    workout: true,
+    caffeine: true,
+    alcohol: false,
+    fastedAm: false,
+  });
+
+  const toggleBinary = (key) => {
+    setBinaryStates(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   return (
     <div className="bg-white">
       {/* Slider rows */}
-      {sliderVars.map((v, i) => (
-        <div
-          key={i}
-          className="h-9 flex items-center px-2 border-b border-gray-200 cursor-pointer relative"
-        >
-          {v.active && (
-            <div
-              className="absolute left-0 top-0 bottom-0 w-[3px]"
-              style={{ background: v.color }}
-            />
-          )}
-          <span className="text-[13px] font-bold tracking-wide min-w-[105px]">
-            {v.label}
-          </span>
-          <div
-            className="flex-1 h-px mx-1.5"
-            style={{
-              background: v.active
-                ? `repeating-linear-gradient(90deg, ${v.color} 0px, ${v.color} 2px, transparent 2px, transparent 5px)`
-                : 'repeating-linear-gradient(90deg, #bbb 0px, #bbb 2px, transparent 2px, transparent 5px)'
-            }}
-          />
-          <span
-            className="text-[16px] font-bold min-w-[50px] text-right tabular-nums"
-            style={{ color: v.active ? v.color : '#000' }}
-          >
-            {v.value}
-          </span>
-          <span className="text-[10px] font-semibold text-gray-600 ml-0.5 min-w-[24px]">
-            {v.unit}
-          </span>
-          <div
-            className="w-1.5 h-1.5 rounded-full ml-1.5"
-            style={{ background: v.active ? v.color : '#ccc' }}
-          />
-        </div>
+      {SLIDER_CONFIGS.map((config) => (
+        <SliderRow
+          key={config.id}
+          label={config.label}
+          unit={config.unit}
+          color={config.color}
+          baseline={config.baseline}
+          maxAbsValue={config.maxAbsValue}
+          stepSize={config.stepSize}
+          value={sliderValues[config.id]}
+          onChange={(val) => handleSliderChange(config.id, val)}
+        />
       ))}
 
       {/* Categorical row */}
@@ -74,8 +68,9 @@ export default function VariableTrackers() {
           {catOptions.map((opt, i) => (
             <button
               key={i}
+              onClick={() => setSelectedCat(opt)}
               className={`px-1.5 py-1 text-[8px] font-bold tracking-tight border border-gray-300 transition-all ${
-                i === 1
+                selectedCat === opt
                   ? 'bg-black text-white border-black'
                   : 'bg-white text-gray-400 hover:bg-gray-50 hover:text-gray-600'
               } ${i > 0 ? 'border-l-0' : ''}`}
@@ -88,33 +83,37 @@ export default function VariableTrackers() {
 
       {/* Binary grid */}
       <div className="flex flex-wrap border-b border-gray-200">
-        {binaryVars.map((v, i) => (
+        {[
+          { key: 'workout', label: 'WORKOUT' },
+          { key: 'caffeine', label: 'CAFFEINE' },
+          { key: 'alcohol', label: 'ALCOHOL' },
+          { key: 'fastedAm', label: 'FASTED AM' },
+        ].map(({ key, label }, i) => (
           <button
-            key={i}
+            key={key}
+            onClick={() => toggleBinary(key)}
             className={`w-1/2 h-8 flex items-center px-2 border-b transition-colors ${
               i % 2 === 0 ? 'border-r' : ''
             } ${i >= 2 ? 'border-b-0' : ''} ${
-              v.on ? 'bg-black' : 'bg-white hover:bg-gray-50'
+              binaryStates[key] ? 'bg-black' : 'bg-white hover:bg-gray-50'
             } border-gray-200`}
           >
             <span
               className={`text-[11px] font-bold tracking-wide transition-colors ${
-                v.on ? 'text-white' : 'text-gray-400'
+                binaryStates[key] ? 'text-white' : 'text-gray-400'
               }`}
             >
-              {v.label}
+              {label}
             </span>
             <div
               className="flex-1 h-px mx-1.5 opacity-30"
               style={{
-                background: v.on
-                  ? 'repeating-linear-gradient(90deg, currentColor 0px, currentColor 2px, transparent 2px, transparent 5px)'
-                  : 'repeating-linear-gradient(90deg, currentColor 0px, currentColor 2px, transparent 2px, transparent 5px)'
+                background: 'repeating-linear-gradient(90deg, currentColor 0px, currentColor 2px, transparent 2px, transparent 5px)'
               }}
             />
             <div
               className={`w-2 h-2 rounded-full transition-colors ${
-                v.on ? 'bg-green-500' : 'bg-gray-300'
+                binaryStates[key] ? 'bg-green-500' : 'bg-gray-300'
               }`}
             />
           </button>
