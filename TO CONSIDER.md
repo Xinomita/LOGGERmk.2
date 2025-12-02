@@ -27,3 +27,23 @@ Development notes, ideas, and features to implement later.
 - Dynamic ranges that adjust over time based on logged data?
 
 ---
+
+## Slider Range Behavior Types
+
+**Two distinct categories of variables require different range update behaviors:**
+
+### Dynamic Range Sliders (Continuous Variables)
+- **Examples**: Bodyweight, waist circumference, body fat %
+- **Behavior**: When logged, the baseline and range shift to center on new value
+- **Rationale**: If you log +5kg bodyweight, the new range should shift up by 5kg to allow continued upward tracking
+- **Implementation**: After logging, `baseline = baseline + loggedValue`, reset slider to 0 (new center)
+
+### Fixed Range Sliders (Scaled Variables)
+- **Examples**: Mood (0-10), energy (0-10), pain level (0-10)
+- **Behavior**: Range stays constant regardless of logged values
+- **Rationale**: Logging mood 10/10 shouldn't shift range to 10-20; scale must remain fixed for consistency
+- **Implementation**: Baseline never changes, slider resets to 0 (neutral/center) after logging
+
+**Key distinction**: Dynamic sliders track absolute measurements that drift over time. Fixed sliders track subjective ratings on a consistent scale.
+
+---

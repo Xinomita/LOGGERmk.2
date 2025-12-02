@@ -15,6 +15,8 @@ import React, { useState, useRef, useCallback } from 'react';
  * - disabled: Disable interaction
  * - previousValue: Previous logged value (for change indicator)
  * - lastUpdated: Timestamp of last log (Date object or ISO string)
+ * - loggingMode: "summary" (default) | "point_in_time"
+ * - onLog: Callback for point-in-time logging - receives { value, absoluteValue, timestamp }
  */
 
 export default function SliderRow({
@@ -33,6 +35,9 @@ export default function SliderRow({
 
   previousValue = null,
   lastUpdated = null,
+
+  loggingMode = "summary",
+  onLog,
 }) {
   const [internalValue, setInternalValue] = useState(defaultValue);
   const isControlled = controlledValue !== undefined;
@@ -146,6 +151,16 @@ export default function SliderRow({
     if (trackRef.current) trackRef.current.releasePointerCapture(e.pointerId);
   }, [isDragging, currentValue]);
 
+  const handleLog = useCallback(() => {
+    if (disabled || !onLog) return;
+    const absoluteValue = baseline + committedValue;
+    onLog({
+      value: committedValue,
+      absoluteValue,
+      timestamp: new Date(),
+    });
+  }, [disabled, onLog, committedValue, baseline]);
+
   const isActive = committedValue !== defaultValue;
   const currentPercent = valueToPercent(currentValue);
 
@@ -226,11 +241,28 @@ export default function SliderRow({
           {unit}
         </span>
 
-        {/* Indicator dot */}
-        <div
-          className="w-1.5 h-1.5 rounded-full ml-1.5 z-10"
-          style={{ background: isActive ? color : '#ccc' }}
-        />
+        {/* Indicator: Dot (summary) or LOG button (point-in-time) */}
+        {loggingMode === "point_in_time" ? (
+          <button
+            onClick={handleLog}
+            disabled={disabled || !isActive}
+            className="ml-1.5 px-2 py-0.5 text-[9px] font-bold tracking-wide border transition-all z-10"
+            style={{
+              color: isActive ? '#fff' : '#999',
+              backgroundColor: isActive ? color : '#f5f5f5',
+              borderColor: isActive ? color : '#ddd',
+              cursor: isActive ? 'pointer' : 'not-allowed',
+              opacity: isActive ? 1 : 0.5,
+            }}
+          >
+            LOG
+          </button>
+        ) : (
+          <div
+            className="w-1.5 h-1.5 rounded-full ml-1.5 z-10"
+            style={{ background: isActive ? color : '#ccc' }}
+          />
+        )}
 
         {/* Bottom border */}
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gray-200" />

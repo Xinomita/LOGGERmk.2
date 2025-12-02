@@ -12,7 +12,8 @@ const SLIDER_CONFIGS = [
     unit: 'kg',
     color: '#2563eb',
     previousValue: -1,  // 79kg -> 82kg = +3kg change
-    lastUpdated: new Date(Date.now() - 2 * 60 * 60 * 1000)  // 2 hours ago
+    lastUpdated: new Date(Date.now() - 2 * 60 * 60 * 1000),  // 2 hours ago
+    loggingMode: 'point_in_time'
   },
   {
     id: 'waist',
@@ -23,7 +24,8 @@ const SLIDER_CONFIGS = [
     unit: 'cm',
     color: '#d97706',
     previousValue: 1,  // 76cm -> 75.5cm = -0.5cm change
-    lastUpdated: new Date()  // Just now
+    lastUpdated: new Date(),  // Just now
+    loggingMode: 'point_in_time'
   },
   {
     id: 'sleep',
@@ -74,6 +76,18 @@ export default function VariableTrackers() {
     setSliderValues(prev => ({ ...prev, [id]: value }));
   };
 
+  const handleLog = (id, logData) => {
+    console.log(`Logged ${id}:`, logData);
+    // In real implementation, this would:
+    // 1. Save to database with timestamp
+    // 2. Update previousValue
+    // 3. For dynamic range sliders, shift baseline
+    // 4. Reset slider to 0 (new center)
+
+    // For demo: just reset to 0
+    setSliderValues(prev => ({ ...prev, [id]: 0 }));
+  };
+
   // Categorical options
   const catOptions = ['Low', 'Normal', 'Elevated', 'Signif.'];
   const [selectedCat, setSelectedCat] = useState('Normal');
@@ -106,6 +120,8 @@ export default function VariableTrackers() {
           onChange={(val) => handleSliderChange(config.id, val)}
           previousValue={config.previousValue}
           lastUpdated={config.lastUpdated}
+          loggingMode={config.loggingMode}
+          onLog={(data) => handleLog(config.id, data)}
         />
       ))}
 
