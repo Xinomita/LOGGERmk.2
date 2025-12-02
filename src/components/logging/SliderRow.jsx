@@ -90,16 +90,24 @@ export default function SliderRow({
   const deltaStr = formatDelta(delta);
   const timestampStr = formatTimestamp(lastUpdated);
 
-  // Calculate animation based on delta
-  const getAnimationSpeed = (delta) => {
-    if (delta === null || delta === 0) return 0.4;
-    const intensity = Math.abs(delta);
-    // Faster animation for larger changes (0.15s to 0.6s range)
-    const speed = Math.max(0.15, Math.min(0.6, 0.6 - (intensity * 0.05)));
+  // Calculate animation speed based on position in range
+  const getAnimationSpeed = () => {
+    // Calculate how far from center (0-1 range, as percentage of maxAbsValue)
+    const percentageOfRange = Math.abs(committedValue) / maxAbsValue;
+
+    // Use cubic easing for smooth, progressive acceleration
+    // Changes are subtle near center, more dramatic near extremes
+    const easedPercentage = Math.pow(percentageOfRange, 3);
+
+    // Map to speed range: 0.8s (slow at center) to 0.25s (fast at extremes)
+    const minSpeed = 0.25; // Fastest (at max/min)
+    const maxSpeed = 0.8;  // Slowest (at center)
+    const speed = maxSpeed - (easedPercentage * (maxSpeed - minSpeed));
+
     return speed;
   };
 
-  const animationSpeed = getAnimationSpeed(delta);
+  const animationSpeed = getAnimationSpeed();
 
   // Convert hex color to rgb for opacity effects
   const hexToRgb = (hex) => {
