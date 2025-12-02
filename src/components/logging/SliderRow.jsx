@@ -182,9 +182,9 @@ export default function SliderRow({
                 key={i}
                 style={{
                   width: '1px',
-                  height: isCenter ? '100%' : isMajor ? '35%' : '15%',
-                  backgroundColor: isCenter ? colorWithOpacity(0.5) : colorWithOpacity(0.12),
-                  opacity: isCenter ? 1 : isMajor ? 0.8 : 0.4,
+                  height: isCenter ? '100%' : isMajor ? '40%' : '20%',
+                  backgroundColor: isCenter ? colorWithOpacity(0.6) : colorWithOpacity(0.25),
+                  opacity: isCenter ? 1 : isMajor ? 1 : 0.6,
                 }}
               />
             );
