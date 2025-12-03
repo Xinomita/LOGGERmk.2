@@ -62,7 +62,7 @@ const SLIDER_CONFIGS = [
   },
 ];
 
-export default function VariableTrackers({ onActiveVariableChange }) {
+export default function VariableTrackers({ onActiveVariableChange, onSliderValuesChange }) {
   // State for each slider variable (with example logged values)
   const [sliderValues, setSliderValues] = useState({
     bodyweight: 2,    // 82kg (baseline 80 + 2)
@@ -88,6 +88,11 @@ export default function VariableTrackers({ onActiveVariableChange }) {
   React.useEffect(() => {
     onActiveVariableChange?.(activeVariable);
   }, [activeVariable, onActiveVariableChange]);
+
+  // Notify parent when slider values change
+  React.useEffect(() => {
+    onSliderValuesChange?.(sliderValues);
+  }, [sliderValues, onSliderValuesChange]);
 
   const handleSliderChange = (id, value) => {
     setSliderValues(prev => ({ ...prev, [id]: value }));

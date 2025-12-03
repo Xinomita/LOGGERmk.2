@@ -10,9 +10,26 @@ import { generateMockHistory } from '../utils/graphUtils';
 
 export default function LoggingPage() {
   const [activeVariable, setActiveVariable] = useState(null);
+  const [currentSliderValues, setCurrentSliderValues] = useState({
+    bodyweight: 2,
+    waist: -0.5,
+    sleep: 0.5,
+    energy: 0,
+    mood: 2,
+  });
 
-  // Generate mock history data for 30 days
-  const history = useMemo(() => generateMockHistory(30), []);
+  // Generate mock history data for 29 days (excluding today)
+  const baseHistory = useMemo(() => generateMockHistory(29), []);
+
+  // Merge base history with current slider values for live updates
+  const liveHistory = useMemo(() => {
+    const today = new Date();
+    const todayEntry = {
+      date: today.toISOString().split('T')[0],
+      values: currentSliderValues,
+    };
+    return [...baseHistory, todayEntry];
+  }, [baseHistory, currentSliderValues]);
 
   // Variable configurations for graph (matches SLIDER_CONFIGS from VariableTrackers)
   const graphVariables = useMemo(() => [
@@ -65,11 +82,14 @@ export default function LoggingPage() {
         <StatusBanner />
         <VariableGraph
           variables={graphVariables}
-          history={history}
+          history={liveHistory}
           activeVariable={activeVariable}
         />
         <GraphLegend activeVariable={activeVariable} />
-        <VariableTrackers onActiveVariableChange={setActiveVariable} />
+        <VariableTrackers
+          onActiveVariableChange={setActiveVariable}
+          onSliderValuesChange={setCurrentSliderValues}
+        />
         <NotesButton />
         <QuickCompoundAdd />
       </div>
