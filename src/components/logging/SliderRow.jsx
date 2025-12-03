@@ -45,6 +45,7 @@ export default function SliderRow({
 
   const [isDragging, setIsDragging] = useState(false);
   const [committedValue, setCommittedValue] = useState(currentValue);
+  const [isLocked, setIsLocked] = useState(false); // For summary mode locking
   const trackRef = useRef(null);
 
   // Value <-> Percent conversion
@@ -126,17 +127,17 @@ export default function SliderRow({
 
   // Pointer event handlers
   const handlePointerDown = useCallback((e) => {
-    if (disabled || !trackRef.current) return;
+    if (isSliderDisabled || !trackRef.current) return;
     const rect = trackRef.current.getBoundingClientRect();
     const newValue = pixelToValue(e.clientX - rect.left, rect.width);
     if (isControlled) onChange?.(newValue);
     else setInternalValue(newValue);
     setIsDragging(true);
     trackRef.current.setPointerCapture(e.pointerId);
-  }, [disabled, isControlled, onChange, maxAbsValue, stepSize, baseline]);
+  }, [isSliderDisabled, isControlled, onChange, maxAbsValue, stepSize, baseline]);
 
   const handlePointerMove = useCallback((e) => {
-    if (!isDragging || disabled || !trackRef.current) return;
+    if (!isDragging || isSliderDisabled || !trackRef.current) return;
     const rect = trackRef.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
     const newValue = pixelToValue(x, rect.width);
@@ -161,8 +162,13 @@ export default function SliderRow({
     });
   }, [disabled, onLog, committedValue, baseline]);
 
+  const toggleLock = useCallback(() => {
+    setIsLocked(prev => !prev);
+  }, []);
+
   const isActive = committedValue !== defaultValue;
   const currentPercent = valueToPercent(currentValue);
+  const isSliderDisabled = disabled || (loggingMode === "summary" && isLocked);
 
   return (
     <div
@@ -176,7 +182,7 @@ export default function SliderRow({
       <div
         className="absolute inset-0 flex items-center px-2"
         style={{
-          opacity: isDragging ? 0 : 1,
+          opacity: isDragging ? 0 : (isLocked ? 0.5 : 1),
           transition: 'opacity 100ms ease-out',
           pointerEvents: isDragging ? 'none' : 'auto',
         }}
@@ -241,12 +247,12 @@ export default function SliderRow({
           {unit}
         </span>
 
-        {/* Indicator: Dot (summary) or LOG button (point-in-time) */}
+        {/* Indicator: Lock (summary) or LOG button (point-in-time) */}
         {loggingMode === "point_in_time" ? (
           <button
             onClick={handleLog}
             disabled={disabled || !isActive}
-            className="ml-1.5 px-2 py-0.5 text-[9px] font-bold tracking-wide border transition-all z-10"
+            className="ml-1.5 px-2 py-0.5 text-[9px] font-bold tracking-wide border transition-all z-30"
             style={{
               color: isActive ? '#fff' : '#999',
               backgroundColor: isActive ? color : '#f5f5f5',
@@ -257,10 +263,36 @@ export default function SliderRow({
           >
             LOG
           </button>
+        ) : isActive ? (
+          <button
+            onClick={toggleLock}
+            disabled={disabled}
+            className="ml-1.5 w-5 h-5 flex items-center justify-center transition-all z-30"
+            style={{
+              cursor: 'pointer',
+              color: isLocked ? color : '#999',
+            }}
+          >
+            <svg width="10" height="12" viewBox="0 0 10 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {isLocked ? (
+                // Locked icon
+                <>
+                  <rect x="1" y="5" width="8" height="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                  <path d="M2.5 5V3.5C2.5 2.12 3.62 1 5 1C6.38 1 7.5 2.12 7.5 3.5V5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                </>
+              ) : (
+                // Unlocked icon
+                <>
+                  <rect x="1" y="5" width="8" height="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                  <path d="M2.5 5V3.5C2.5 2.12 3.62 1 5 1C6.38 1 7.5 2.12 7.5 3.5V4" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                </>
+              )}
+            </svg>
+          </button>
         ) : (
           <div
             className="w-1.5 h-1.5 rounded-full ml-1.5 z-10"
-            style={{ background: isActive ? color : '#ccc' }}
+            style={{ background: '#ccc' }}
           />
         )}
 
