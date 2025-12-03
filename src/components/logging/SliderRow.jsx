@@ -48,6 +48,17 @@ export default function SliderRow({
   const [isLocked, setIsLocked] = useState(false); // For summary mode locking
   const trackRef = useRef(null);
 
+  // Sync committedValue when parent resets the value (e.g., after LOG)
+  React.useEffect(() => {
+    if (!isDragging) {
+      setCommittedValue(currentValue);
+      // Reset lock state when value returns to default
+      if (currentValue === defaultValue) {
+        setIsLocked(false);
+      }
+    }
+  }, [currentValue, isDragging, defaultValue]);
+
   // Value <-> Percent conversion
   const valueToPercent = (val) => ((val + maxAbsValue) / (maxAbsValue * 2)) * 100;
 
