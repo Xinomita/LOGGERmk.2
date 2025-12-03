@@ -96,6 +96,10 @@ export default function SliderRow({
   const deltaStr = formatDelta(delta);
   const timestampStr = formatTimestamp(lastUpdated);
 
+  const isActive = committedValue !== defaultValue;
+  const currentPercent = valueToPercent(currentValue);
+  const isSliderDisabled = disabled || (loggingMode === "summary" && isLocked);
+
   // Calculate animation speed based on position in range
   const getAnimationSpeed = () => {
     // Calculate how far from center (0-1 range, as percentage of maxAbsValue)
@@ -143,7 +147,7 @@ export default function SliderRow({
     const newValue = pixelToValue(x, rect.width);
     if (isControlled) onChange?.(newValue);
     else setInternalValue(newValue);
-  }, [isDragging, disabled, isControlled, onChange, maxAbsValue, stepSize]);
+  }, [isDragging, isSliderDisabled, isControlled, onChange, maxAbsValue, stepSize]);
 
   const handlePointerUp = useCallback((e) => {
     if (!isDragging) return;
@@ -165,10 +169,6 @@ export default function SliderRow({
   const toggleLock = useCallback(() => {
     setIsLocked(prev => !prev);
   }, []);
-
-  const isActive = committedValue !== defaultValue;
-  const currentPercent = valueToPercent(currentValue);
-  const isSliderDisabled = disabled || (loggingMode === "summary" && isLocked);
 
   return (
     <div
