@@ -78,7 +78,7 @@ export default function VariableGraph({
     return getAxisTicks(domain, variable.stepSize);
   }, [activeVariable, variables, domains]);
 
-  // Generate smooth curve path with simple control points
+  // Generate smooth curve path with consistent thickness
   const getLinePath = (points) => {
     if (points.length === 0) return '';
     if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
@@ -86,28 +86,21 @@ export default function VariableGraph({
       return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
     }
 
-    // Use simple midpoint-based control points for smooth curves
+    // Create smooth curves with control points positioned for natural flow
     let path = `M ${points[0].x} ${points[0].y}`;
 
     for (let i = 0; i < points.length - 1; i++) {
       const current = points[i];
       const next = points[i + 1];
 
-      if (i === 0) {
-        // First segment: control point closer to current point
-        const cp1x = current.x + (next.x - current.x) * 0.5;
-        const cp1y = current.y;
-        const cp2x = current.x + (next.x - current.x) * 0.5;
-        const cp2y = next.y;
-        path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${next.x} ${next.y}`;
-      } else {
-        // Middle segments: use horizontal control points for smooth horizontal curves
-        const cp1x = current.x + (next.x - current.x) * 0.5;
-        const cp1y = current.y;
-        const cp2x = current.x + (next.x - current.x) * 0.5;
-        const cp2y = next.y;
-        path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${next.x} ${next.y}`;
-      }
+      // Place control points 1/3 and 2/3 along the X distance
+      // Keep Y values at their respective points for smooth horizontal flow
+      const cp1x = current.x + (next.x - current.x) / 3;
+      const cp1y = current.y;
+      const cp2x = current.x + (next.x - current.x) * 2 / 3;
+      const cp2y = next.y;
+
+      path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${next.x} ${next.y}`;
     }
 
     return path;
