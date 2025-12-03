@@ -17,6 +17,7 @@ import React, { useState, useRef, useCallback } from 'react';
  * - lastUpdated: Timestamp of last log (Date object or ISO string)
  * - loggingMode: "summary" (default) | "point_in_time"
  * - onLog: Callback for point-in-time logging - receives { value, absoluteValue, timestamp }
+ * - onDragChange: Callback when drag state changes - receives boolean (true when dragging starts, false when ends)
  */
 
 export default function SliderRow({
@@ -38,6 +39,7 @@ export default function SliderRow({
 
   loggingMode = "summary",
   onLog,
+  onDragChange,
 }) {
   const [internalValue, setInternalValue] = useState(defaultValue);
   const isControlled = controlledValue !== undefined;
@@ -149,8 +151,9 @@ export default function SliderRow({
     if (isControlled) onChange?.(newValue);
     else setInternalValue(newValue);
     setIsDragging(true);
+    onDragChange?.(true);
     trackRef.current.setPointerCapture(e.pointerId);
-  }, [isSliderDisabled, isControlled, onChange, maxAbsValue, stepSize, baseline]);
+  }, [isSliderDisabled, isControlled, onChange, maxAbsValue, stepSize, baseline, onDragChange]);
 
   const handlePointerMove = useCallback((e) => {
     if (!isDragging || isSliderDisabled || !containerRef.current || !trackRef.current) return;
@@ -164,6 +167,7 @@ export default function SliderRow({
   const handlePointerUp = useCallback((e) => {
     if (!isDragging) return;
     setIsDragging(false);
+    onDragChange?.(false);
     setCommittedValue(currentValue);
 
     // Auto-lock summary sliders when value is set (not at default)
@@ -172,7 +176,7 @@ export default function SliderRow({
     }
 
     if (trackRef.current) trackRef.current.releasePointerCapture(e.pointerId);
-  }, [isDragging, currentValue, loggingMode, defaultValue]);
+  }, [isDragging, currentValue, loggingMode, defaultValue, onDragChange]);
 
   const handleLog = useCallback((e) => {
     if (disabled || !onLog) return;

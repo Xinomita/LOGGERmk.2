@@ -250,35 +250,6 @@ export default function VariableGraph({
             </g>
           )}
         </svg>
-
-        {/* Legend overlay */}
-        <div className="absolute bottom-0 left-0 right-0 flex items-center justify-start gap-2 px-3 py-1 bg-gradient-to-t from-white via-white to-transparent">
-          {variables.map(variable => (
-            <button
-              key={variable.id}
-              onClick={() => onFocusChange?.(
-                focusedVariable === variable.id ? null : variable.id
-              )}
-              className="flex items-center gap-1 px-1 py-0.5 rounded transition-all hover:bg-gray-100"
-              style={{
-                opacity: focusedVariable === null || focusedVariable === variable.id ? 1 : 0.3,
-              }}
-            >
-              <div
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: variable.color }}
-              />
-              <span
-                className="text-[7px] font-bold tracking-wide uppercase"
-                style={{
-                  color: focusedVariable === variable.id ? variable.color : '#666',
-                }}
-              >
-                {variable.label}
-              </span>
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Compounds strip */}

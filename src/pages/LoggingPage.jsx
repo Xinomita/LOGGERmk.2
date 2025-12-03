@@ -10,6 +10,7 @@ import { generateMockHistory } from '../utils/graphUtils';
 
 export default function LoggingPage() {
   const [focusedVariable, setFocusedVariable] = useState(null);
+  const [activeVariable, setActiveVariable] = useState(null);
 
   // Generate mock history data for 30 days
   const history = useMemo(() => generateMockHistory(30), []);
@@ -69,8 +70,8 @@ export default function LoggingPage() {
           focusedVariable={focusedVariable}
           onFocusChange={setFocusedVariable}
         />
-        <GraphLegend />
-        <VariableTrackers />
+        <GraphLegend activeVariable={activeVariable} />
+        <VariableTrackers onActiveVariableChange={setActiveVariable} />
         <NotesButton />
         <QuickCompoundAdd />
       </div>

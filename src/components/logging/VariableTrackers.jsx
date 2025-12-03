@@ -62,7 +62,7 @@ const SLIDER_CONFIGS = [
   },
 ];
 
-export default function VariableTrackers() {
+export default function VariableTrackers({ onActiveVariableChange }) {
   // State for each slider variable (with example logged values)
   const [sliderValues, setSliderValues] = useState({
     bodyweight: 2,    // 82kg (baseline 80 + 2)
@@ -81,8 +81,20 @@ export default function VariableTrackers() {
     mood: 5,
   });
 
+  // Track which variable is currently being dragged
+  const [activeVariable, setActiveVariable] = useState(null);
+
+  // Notify parent when active variable changes
+  React.useEffect(() => {
+    onActiveVariableChange?.(activeVariable);
+  }, [activeVariable, onActiveVariableChange]);
+
   const handleSliderChange = (id, value) => {
     setSliderValues(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleDragChange = (id, isDragging) => {
+    setActiveVariable(isDragging ? id : null);
   };
 
   const handleLog = (id, logData) => {
@@ -136,6 +148,7 @@ export default function VariableTrackers() {
           lastUpdated={config.lastUpdated}
           loggingMode={config.loggingMode}
           onLog={(data) => handleLog(config.id, data)}
+          onDragChange={(isDragging) => handleDragChange(config.id, isDragging)}
         />
       ))}
 
