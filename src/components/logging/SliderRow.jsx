@@ -46,7 +46,8 @@ export default function SliderRow({
   const [isDragging, setIsDragging] = useState(false);
   const [committedValue, setCommittedValue] = useState(currentValue);
   const [isLocked, setIsLocked] = useState(false); // For summary mode locking
-  const trackRef = useRef(null);
+  const containerRef = useRef(null); // Full component width for calculations
+  const trackRef = useRef(null); // Hit area for drag interactions
 
   // Sync committedValue when parent resets the value (e.g., after LOG)
   React.useEffect(() => {
@@ -142,8 +143,8 @@ export default function SliderRow({
 
   // Pointer event handlers
   const handlePointerDown = useCallback((e) => {
-    if (isSliderDisabled || !trackRef.current) return;
-    const rect = trackRef.current.getBoundingClientRect();
+    if (isSliderDisabled || !containerRef.current || !trackRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
     const newValue = pixelToValue(e.clientX - rect.left, rect.width);
     if (isControlled) onChange?.(newValue);
     else setInternalValue(newValue);
@@ -152,8 +153,8 @@ export default function SliderRow({
   }, [isSliderDisabled, isControlled, onChange, maxAbsValue, stepSize, baseline]);
 
   const handlePointerMove = useCallback((e) => {
-    if (!isDragging || isSliderDisabled || !trackRef.current) return;
-    const rect = trackRef.current.getBoundingClientRect();
+    if (!isDragging || isSliderDisabled || !containerRef.current || !trackRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
     const newValue = pixelToValue(x, rect.width);
     if (isControlled) onChange?.(newValue);
@@ -193,6 +194,7 @@ export default function SliderRow({
 
   return (
     <div
+      ref={containerRef}
       className="h-9 flex items-center relative select-none overflow-hidden transition-colors duration-100"
       style={{
         touchAction: 'none',
@@ -291,8 +293,8 @@ export default function SliderRow({
             className="ml-1.5 w-5 h-5 flex items-center justify-center transition-all z-30 rounded"
             style={{
               cursor: 'pointer',
-              color: isLocked ? '#fff' : (isActive ? color : '#999'),
-              backgroundColor: isLocked ? color : 'transparent',
+              color: isLocked ? color : '#999',
+              backgroundColor: 'transparent',
               pointerEvents: 'auto',
               opacity: 1,
             }}
