@@ -153,8 +153,14 @@ export default function SliderRow({
     if (!isDragging) return;
     setIsDragging(false);
     setCommittedValue(currentValue);
+
+    // Auto-lock summary sliders when value is set (not at default)
+    if (loggingMode === "summary" && currentValue !== defaultValue) {
+      setIsLocked(true);
+    }
+
     if (trackRef.current) trackRef.current.releasePointerCapture(e.pointerId);
-  }, [isDragging, currentValue]);
+  }, [isDragging, currentValue, loggingMode, defaultValue]);
 
   const handleLog = useCallback(() => {
     if (disabled || !onLog) return;
@@ -251,14 +257,14 @@ export default function SliderRow({
         {loggingMode === "point_in_time" ? (
           <button
             onClick={handleLog}
-            disabled={disabled || !isActive}
+            disabled={disabled}
             className="ml-1.5 px-2 py-0.5 text-[9px] font-bold tracking-wide border transition-all z-30"
             style={{
-              color: isActive ? '#fff' : '#999',
-              backgroundColor: isActive ? color : '#f5f5f5',
-              borderColor: isActive ? color : '#ddd',
-              cursor: isActive ? 'pointer' : 'not-allowed',
-              opacity: isActive ? 1 : 0.5,
+              color: '#fff',
+              backgroundColor: color,
+              borderColor: color,
+              cursor: disabled ? 'not-allowed' : 'pointer',
+              opacity: disabled ? 0.5 : 1,
             }}
           >
             LOG
