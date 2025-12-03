@@ -288,10 +288,11 @@ export default function SliderRow({
           <button
             onClick={toggleLock}
             disabled={disabled}
-            className="ml-1.5 w-5 h-5 flex items-center justify-center transition-all z-30"
+            className="ml-1.5 w-5 h-5 flex items-center justify-center transition-all z-30 rounded"
             style={{
               cursor: 'pointer',
-              color: isLocked ? color : '#999',
+              color: isLocked ? '#fff' : '#999',
+              backgroundColor: isLocked ? color : 'transparent',
               pointerEvents: 'auto',
               opacity: 1,
             }}
