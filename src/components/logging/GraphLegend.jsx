@@ -23,26 +23,21 @@ export default function GraphLegend({ activeVariable = null }) {
         return (
           <div
             key={variable.id}
-            className="flex items-center gap-1 px-1 py-0.5 -mx-1 -my-0.5 transition-all"
-            style={{
-              filter: isActive ? `drop-shadow(0 0 4px ${variable.color})` : 'none',
-            }}
+            className="flex items-center gap-1 px-1 py-0.5 -mx-1 -my-0.5 transition-colors"
           >
             <div
-              className={`w-1.5 h-1.5 border-2 transition-all ${
+              className={`w-1.5 h-1.5 border-2 transition-colors ${
                 variable.shape === 'dot' ? 'rounded-full' : ''
               }`}
               style={{
                 borderColor: isActive ? variable.color : '#000',
                 backgroundColor: isActive ? variable.color : 'transparent',
-                boxShadow: isActive ? `0 0 6px ${variable.color}` : 'none',
               }}
             />
             <span
-              className="text-[7px] tracking-wider font-semibold transition-all"
+              className="text-[7px] tracking-wider font-semibold transition-colors"
               style={{
                 color: isActive ? variable.color : '#000',
-                textShadow: isActive ? `0 0 8px ${variable.color}` : 'none',
               }}
             >
               {variable.name}

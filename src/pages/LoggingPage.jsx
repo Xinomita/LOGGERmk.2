@@ -9,7 +9,6 @@ import QuickCompoundAdd from '../components/logging/QuickCompoundAdd';
 import { generateMockHistory } from '../utils/graphUtils';
 
 export default function LoggingPage() {
-  const [focusedVariable, setFocusedVariable] = useState(null);
   const [activeVariable, setActiveVariable] = useState(null);
 
   // Generate mock history data for 30 days
@@ -67,8 +66,7 @@ export default function LoggingPage() {
         <VariableGraph
           variables={graphVariables}
           history={history}
-          focusedVariable={focusedVariable}
-          onFocusChange={setFocusedVariable}
+          activeVariable={activeVariable}
         />
         <GraphLegend activeVariable={activeVariable} />
         <VariableTrackers onActiveVariableChange={setActiveVariable} />

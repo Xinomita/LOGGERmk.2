@@ -13,14 +13,12 @@ import {
  * Props:
  * - variables: Array of variable configs from SLIDER_CONFIGS
  * - history: Array of { date, values } where values is { variableId: relativeValue }
- * - focusedVariable: Currently focused variable ID (shows axis)
- * - onFocusChange: Callback when variable is selected
+ * - activeVariable: Currently dragged variable ID (shows Y-axis labels)
  */
 export default function VariableGraph({
   variables = [],
   history = [],
-  focusedVariable = null,
-  onFocusChange,
+  activeVariable = null,
 }) {
   const [hoveredPoint, setHoveredPoint] = useState(null);
 
@@ -70,15 +68,15 @@ export default function VariableGraph({
     });
   }, [variables, history, domains, graphWidth, graphHeight]);
 
-  // Generate axis ticks for focused variable
+  // Generate axis ticks for active variable (being dragged)
   const axisTicks = useMemo(() => {
-    if (!focusedVariable) return [];
-    const variable = variables.find(v => v.id === focusedVariable);
+    if (!activeVariable) return [];
+    const variable = variables.find(v => v.id === activeVariable);
     if (!variable) return [];
 
-    const domain = domains[focusedVariable];
+    const domain = domains[activeVariable];
     return getAxisTicks(domain, variable.stepSize);
-  }, [focusedVariable, variables, domains]);
+  }, [activeVariable, variables, domains]);
 
   // Generate path data for each series
   const getLinePath = (points) => {
@@ -137,15 +135,31 @@ export default function VariableGraph({
             opacity="0.5"
           />
 
-          {/* Y-axis ticks for focused variable */}
-          {focusedVariable && axisTicks.slice(0, 5).map((tick, index) => {
+          {/* Y-axis tick marks - always visible */}
+          {[0.75, 0.5, 0.25, 0, -0.25, -0.5, -0.75].map(normalizedY => {
+            const y = normalizedToGraphY(normalizedY);
+            return (
+              <line
+                key={normalizedY}
+                x1={padding.left - 3}
+                y1={padding.top + y}
+                x2={padding.left}
+                y2={padding.top + y}
+                stroke="#666"
+                strokeWidth="1"
+              />
+            );
+          })}
+
+          {/* Y-axis labels - only show when dragging */}
+          {activeVariable && axisTicks.slice(0, 5).map((tick, index) => {
             const y = normalizedToGraphY(tick.normalizedY);
-            const variable = variables.find(v => v.id === focusedVariable);
+            const variable = variables.find(v => v.id === activeVariable);
 
             return (
               <text
                 key={index}
-                x={padding.left - 3}
+                x={padding.left - 5}
                 y={padding.top + y}
                 textAnchor="end"
                 alignmentBaseline="middle"
@@ -166,8 +180,8 @@ export default function VariableGraph({
                 d={getLinePath(s.points)}
                 fill="none"
                 stroke={s.color}
-                strokeWidth={focusedVariable === s.id ? 2.5 : 1.5}
-                strokeOpacity={focusedVariable === null || focusedVariable === s.id ? 1 : 0.25}
+                strokeWidth={activeVariable === s.id ? 2.5 : 1.5}
+                strokeOpacity={activeVariable === null || activeVariable === s.id ? 1 : 0.25}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 transform={`translate(${padding.left}, ${padding.top})`}
@@ -179,9 +193,9 @@ export default function VariableGraph({
                   key={index}
                   cx={padding.left + point.x}
                   cy={padding.top + point.y}
-                  r={focusedVariable === s.id ? 2.5 : 1.5}
+                  r={activeVariable === s.id ? 2.5 : 1.5}
                   fill={s.color}
-                  fillOpacity={focusedVariable === null || focusedVariable === s.id ? 1 : 0.25}
+                  fillOpacity={activeVariable === null || activeVariable === s.id ? 1 : 0.25}
                   stroke="#fff"
                   strokeWidth="1"
                   style={{ cursor: 'pointer' }}
