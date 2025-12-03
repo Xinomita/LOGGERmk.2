@@ -34,7 +34,7 @@ const SLIDER_CONFIGS = [
     maxAbsValue: 3,
     stepSize: 0.25,
     unit: 'hrs',
-    color: '#16a34a',
+    color: '#22c55e',  // Brighter green
     previousValue: -0.5,  // 6.5hrs -> 7hrs = +0.5hrs change
     lastUpdated: new Date(new Date().setHours(8, 30, 0, 0))  // This morning 8:30 AM
   },
@@ -45,7 +45,7 @@ const SLIDER_CONFIGS = [
     maxAbsValue: 5,
     stepSize: 0.5,
     unit: '/10',
-    color: '#db2777',
+    color: '#ec4899',  // Brighter pink/magenta
     previousValue: null,  // No previous value
     lastUpdated: null
   },
@@ -56,7 +56,7 @@ const SLIDER_CONFIGS = [
     maxAbsValue: 5,
     stepSize: 1,
     unit: '/10',
-    color: '#0891b2',
+    color: '#06b6d4',  // Brighter cyan
     previousValue: 0,  // Was 5/10, now 7/10 = +2 change
     lastUpdated: new Date(Date.now() - 24 * 60 * 60 * 1000)  // Yesterday
   },
