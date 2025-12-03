@@ -270,6 +270,15 @@ export default function SliderRow({
           {unit}
         </span>
 
+        {/* Spacer to reserve space for button */}
+        {loggingMode === "point_in_time" ? (
+          <div className="ml-1.5 px-2 py-0.5 text-[9px] font-bold tracking-wide border opacity-0 pointer-events-none">
+            LOG
+          </div>
+        ) : (
+          <div className="ml-1.5 w-5 h-5 opacity-0 pointer-events-none" />
+        )}
+
         {/* Bottom border */}
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gray-200" />
       </div>
