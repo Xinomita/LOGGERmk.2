@@ -72,19 +72,33 @@ export default function VariableTrackers() {
     mood: 2,          // 7/10 (baseline 5 + 2)
   });
 
+  // Dynamic baselines for point-in-time sliders
+  const [baselines, setBaselines] = useState({
+    bodyweight: 80,
+    waist: 75,
+    sleep: 7,
+    energy: 5,
+    mood: 5,
+  });
+
   const handleSliderChange = (id, value) => {
     setSliderValues(prev => ({ ...prev, [id]: value }));
   };
 
   const handleLog = (id, logData) => {
     console.log(`Logged ${id}:`, logData);
-    // In real implementation, this would:
-    // 1. Save to database with timestamp
-    // 2. Update previousValue
-    // 3. For dynamic range sliders, shift baseline
-    // 4. Reset slider to 0 (new center)
 
-    // For demo: just reset to 0
+    const config = SLIDER_CONFIGS.find(c => c.id === id);
+
+    // For dynamic range sliders (point-in-time), adjust baseline
+    if (config?.loggingMode === 'point_in_time') {
+      setBaselines(prev => ({
+        ...prev,
+        [id]: logData.absoluteValue  // New baseline is the logged value
+      }));
+    }
+
+    // Reset slider to 0 (new center)
     setSliderValues(prev => ({ ...prev, [id]: 0 }));
   };
 
@@ -113,7 +127,7 @@ export default function VariableTrackers() {
           label={config.label}
           unit={config.unit}
           color={config.color}
-          baseline={config.baseline}
+          baseline={baselines[config.id]}
           maxAbsValue={config.maxAbsValue}
           stepSize={config.stepSize}
           value={sliderValues[config.id]}
