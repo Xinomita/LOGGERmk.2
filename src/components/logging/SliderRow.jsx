@@ -270,12 +270,24 @@ export default function SliderRow({
           {unit}
         </span>
 
+        {/* Bottom border */}
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gray-200" />
+      </div>
+
+      {/* BUTTONS - Always at full opacity, not affected by locked state dimming */}
+      <div
+        className="absolute inset-0 flex items-center justify-end px-2 pointer-events-none"
+        style={{
+          opacity: isDragging ? 0 : 1,
+          transition: 'opacity 100ms ease-out',
+        }}
+      >
         {/* Indicator: Lock (summary) or LOG button (point-in-time) */}
         {loggingMode === "point_in_time" ? (
           <button
             onClick={handleLog}
             disabled={disabled}
-            className="ml-1.5 px-2 py-0.5 text-[9px] font-bold tracking-wide border transition-all z-30"
+            className="ml-1.5 px-2 py-0.5 text-[9px] font-bold tracking-wide border transition-all z-30 pointer-events-auto"
             style={{
               color: '#fff',
               backgroundColor: color,
@@ -290,13 +302,11 @@ export default function SliderRow({
           <button
             onClick={toggleLock}
             disabled={disabled}
-            className="ml-1.5 w-5 h-5 flex items-center justify-center transition-all z-30 rounded"
+            className="ml-1.5 w-5 h-5 flex items-center justify-center transition-all z-30 rounded pointer-events-auto"
             style={{
               cursor: 'pointer',
               color: isLocked ? color : '#999',
               backgroundColor: 'transparent',
-              pointerEvents: 'auto',
-              opacity: 1,
             }}
           >
             <svg width="10" height="12" viewBox="0 0 10 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -316,9 +326,6 @@ export default function SliderRow({
             </svg>
           </button>
         )}
-
-        {/* Bottom border */}
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gray-200" />
       </div>
 
       {/* ACTIVE STATE - Black background when dragging */}
