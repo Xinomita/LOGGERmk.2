@@ -424,10 +424,10 @@ export default function SliderRow({
         </div>
       </div>
 
-      {/* Invisible hit area for drag */}
+      {/* Invisible hit area for drag - excludes right side for buttons */}
       <div
         ref={trackRef}
-        className="absolute inset-0 z-20 cursor-grab active:cursor-grabbing"
+        className="absolute inset-y-0 left-0 right-[60px] z-20 cursor-grab active:cursor-grabbing"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
