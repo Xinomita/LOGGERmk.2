@@ -284,14 +284,14 @@ export default function SliderRow({
           >
             LOG
           </button>
-        ) : isActive ? (
+        ) : (
           <button
             onClick={toggleLock}
             disabled={disabled}
             className="ml-1.5 w-5 h-5 flex items-center justify-center transition-all z-30 rounded"
             style={{
               cursor: 'pointer',
-              color: isLocked ? '#fff' : '#999',
+              color: isLocked ? '#fff' : (isActive ? color : '#999'),
               backgroundColor: isLocked ? color : 'transparent',
               pointerEvents: 'auto',
               opacity: 1,
@@ -313,11 +313,6 @@ export default function SliderRow({
               )}
             </svg>
           </button>
-        ) : (
-          <div
-            className="w-1.5 h-1.5 rounded-full ml-1.5 z-10"
-            style={{ background: '#ccc' }}
-          />
         )}
 
         {/* Bottom border */}
