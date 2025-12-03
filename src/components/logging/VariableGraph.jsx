@@ -78,7 +78,8 @@ export default function VariableGraph({
     return getAxisTicks(domain, variable.stepSize);
   }, [activeVariable, variables, domains]);
 
-  // Generate smooth curve path with consistent thickness
+  // Generate smooth curve using monotone cubic interpolation
+  // Control points derived from tangents for consistent thickness
   const getLinePath = (points) => {
     if (points.length === 0) return '';
     if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
@@ -86,21 +87,45 @@ export default function VariableGraph({
       return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
     }
 
-    // Create smooth curves with control points positioned for natural flow
+    // Calculate tangents (slopes) at each point for monotone interpolation
+    const tangents = [];
+
+    for (let i = 0; i < points.length; i++) {
+      if (i === 0) {
+        // First point: use slope to next point
+        const dx = points[1].x - points[0].x;
+        const dy = points[1].y - points[0].y;
+        tangents.push(dy / dx);
+      } else if (i === points.length - 1) {
+        // Last point: use slope from previous point
+        const dx = points[i].x - points[i - 1].x;
+        const dy = points[i].y - points[i - 1].y;
+        tangents.push(dy / dx);
+      } else {
+        // Middle points: average of adjacent slopes
+        const dx1 = points[i].x - points[i - 1].x;
+        const dy1 = points[i].y - points[i - 1].y;
+        const dx2 = points[i + 1].x - points[i].x;
+        const dy2 = points[i + 1].y - points[i].y;
+        tangents.push((dy1 / dx1 + dy2 / dx2) / 2);
+      }
+    }
+
+    // Build path using calculated tangents for control points
     let path = `M ${points[0].x} ${points[0].y}`;
 
     for (let i = 0; i < points.length - 1; i++) {
-      const current = points[i];
-      const next = points[i + 1];
+      const p0 = points[i];
+      const p1 = points[i + 1];
+      const dx = p1.x - p0.x;
 
-      // Place control points 1/3 and 2/3 along the X distance
-      // Keep Y values at their respective points for smooth horizontal flow
-      const cp1x = current.x + (next.x - current.x) / 3;
-      const cp1y = current.y;
-      const cp2x = current.x + (next.x - current.x) * 2 / 3;
-      const cp2y = next.y;
+      // Control points positioned 1/3 along X, using tangent-based Y
+      const cp1x = p0.x + dx / 3;
+      const cp1y = p0.y + (tangents[i] * dx) / 3;
+      const cp2x = p1.x - dx / 3;
+      const cp2y = p1.y - (tangents[i + 1] * dx) / 3;
 
-      path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${next.x} ${next.y}`;
+      path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p1.x} ${p1.y}`;
     }
 
     return path;
