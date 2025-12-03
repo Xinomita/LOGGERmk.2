@@ -143,7 +143,6 @@ export default function VariableGraph({
         <svg
           viewBox={`0 0 ${width} ${height}`}
           className="w-full h-full"
-          preserveAspectRatio="none"
         >
           {/* Graph area background with grid */}
           <defs>
@@ -225,6 +224,7 @@ export default function VariableGraph({
                 strokeOpacity={activeVariable === null || activeVariable === s.id ? 1 : 0.25}
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke"
                 transform={`translate(${padding.left}, ${padding.top})`}
               />
 
