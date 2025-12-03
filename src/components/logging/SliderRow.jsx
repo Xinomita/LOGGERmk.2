@@ -173,8 +173,10 @@ export default function SliderRow({
     if (trackRef.current) trackRef.current.releasePointerCapture(e.pointerId);
   }, [isDragging, currentValue, loggingMode, defaultValue]);
 
-  const handleLog = useCallback(() => {
+  const handleLog = useCallback((e) => {
     if (disabled || !onLog) return;
+    e.stopPropagation();
+    e.preventDefault();
     const absoluteValue = baseline + committedValue;
     onLog({
       value: committedValue,
@@ -183,7 +185,9 @@ export default function SliderRow({
     });
   }, [disabled, onLog, committedValue, baseline]);
 
-  const toggleLock = useCallback(() => {
+  const toggleLock = useCallback((e) => {
+    e.stopPropagation();
+    e.preventDefault();
     setIsLocked(prev => !prev);
   }, []);
 
@@ -251,8 +255,8 @@ export default function SliderRow({
             {formatValue(committedValue)}
           </span>
 
-          {/* Timestamp - only show when slider is active */}
-          {isActive && timestampStr && (
+          {/* Timestamp - show when last logged */}
+          {timestampStr && (
             <span className="text-[7px] font-medium text-gray-400 tracking-tight leading-none mt-[-1px]">
               {timestampStr}
             </span>
