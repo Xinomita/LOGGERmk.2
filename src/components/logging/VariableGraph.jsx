@@ -78,39 +78,36 @@ export default function VariableGraph({
     return getAxisTicks(domain, variable.stepSize);
   }, [activeVariable, variables, domains]);
 
-  // Generate smooth curve path using cubic Bezier curves
+  // Generate smooth curve path with simple control points
   const getLinePath = (points) => {
     if (points.length === 0) return '';
     if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+    if (points.length === 2) {
+      return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
+    }
 
-    // Calculate control points for smooth curves
-    const getControlPoints = (p0, p1, p2, tension = 0.3) => {
-      const d01 = Math.sqrt(Math.pow(p1.x - p0.x, 2) + Math.pow(p1.y - p0.y, 2));
-      const d12 = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
-
-      const fa = tension * d01 / (d01 + d12);
-      const fb = tension * d12 / (d01 + d12);
-
-      const cp1x = p1.x - fa * (p2.x - p0.x);
-      const cp1y = p1.y - fa * (p2.y - p0.y);
-      const cp2x = p1.x + fb * (p2.x - p0.x);
-      const cp2y = p1.y + fb * (p2.y - p0.y);
-
-      return { cp1x, cp1y, cp2x, cp2y };
-    };
-
+    // Use simple midpoint-based control points for smooth curves
     let path = `M ${points[0].x} ${points[0].y}`;
 
     for (let i = 0; i < points.length - 1; i++) {
-      const p0 = i > 0 ? points[i - 1] : points[i];
-      const p1 = points[i];
-      const p2 = points[i + 1];
-      const p3 = i < points.length - 2 ? points[i + 2] : p2;
+      const current = points[i];
+      const next = points[i + 1];
 
-      const { cp2x, cp2y } = getControlPoints(p0, p1, p2);
-      const { cp1x, cp1y } = getControlPoints(p1, p2, p3);
-
-      path += ` C ${cp2x} ${cp2y}, ${cp1x} ${cp1y}, ${p2.x} ${p2.y}`;
+      if (i === 0) {
+        // First segment: control point closer to current point
+        const cp1x = current.x + (next.x - current.x) * 0.5;
+        const cp1y = current.y;
+        const cp2x = current.x + (next.x - current.x) * 0.5;
+        const cp2y = next.y;
+        path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${next.x} ${next.y}`;
+      } else {
+        // Middle segments: use horizontal control points for smooth horizontal curves
+        const cp1x = current.x + (next.x - current.x) * 0.5;
+        const cp1y = current.y;
+        const cp2x = current.x + (next.x - current.x) * 0.5;
+        const cp2y = next.y;
+        path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${next.x} ${next.y}`;
+      }
     }
 
     return path;
