@@ -23,9 +23,9 @@ export default function VariableGraph({
   const [hoveredPoint, setHoveredPoint] = useState(null);
 
   // Graph dimensions
-  const height = 130;
+  const height = 180;
   const width = 800; // Will be scaled by viewBox
-  const padding = { top: 15, right: 30, bottom: 18, left: 18 };
+  const padding = { top: 8, right: 30, bottom: 12, left: 18 };
   const graphWidth = width - padding.left - padding.right;
   const graphHeight = height - padding.top - padding.bottom;
 
@@ -138,7 +138,7 @@ export default function VariableGraph({
   };
 
   return (
-    <div className="h-[130px] bg-white border-b-2 border-black flex">
+    <div className="h-[180px] bg-white border-b-2 border-black flex">
       <div className="flex-1 relative overflow-hidden">
         <svg
           viewBox={`0 0 ${width} ${height}`}
