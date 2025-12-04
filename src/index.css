@@ -1,6 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
-  @tailwind components;
-  @tailwind utilities;
+@tailwind components;
+@tailwind utilities;
 
   @layer base {
     :root {
@@ -67,3 +69,18 @@
       @apply bg-background text-foreground;
     }
   }
+@layer utilities {
+  @keyframes dash-move-right {
+    0% { background-position: 0 0; }
+    100% { background-position: 5px 0; }
+  }
+
+  @keyframes dash-move-left {
+    0% { background-position: 0 0; }
+    100% { background-position: -5px 0; }
+  }
+
+  .animate-dash {
+    animation: dash-move-right 0.4s linear infinite;
+  }
+}
