@@ -171,7 +171,6 @@ export default function VariableGraph({
             y2={padding.top + normalizedToGraphY(0)}
             stroke="#999"
             strokeWidth="1"
-            strokeDasharray="4 2"
             opacity="0.5"
           />
 
