@@ -25,7 +25,7 @@ export default function VariableGraph({
   // Graph dimensions
   const height = 130;
   const width = 800; // Will be scaled by viewBox
-  const padding = { top: 15, right: 30, bottom: 18, left: 18 };
+  const padding = { top: 4, right: 30, bottom: 10, left: 18 };
   const graphWidth = width - padding.left - padding.right;
   const graphHeight = height - padding.top - padding.bottom;
 
