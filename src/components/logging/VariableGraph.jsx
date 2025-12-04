@@ -61,10 +61,7 @@ export const VariableGraph = ({
             </pattern>
           </defs>
 
-          {/*
-            KEY FIX: Grid background fills ENTIRE SVG (0,0 to width,height)
-            NOT constrained by padding - this ensures no white space
-          */}
+          {/* Grid fills entire SVG - not constrained by padding */}
           <rect
             x={0}
             y={0}
