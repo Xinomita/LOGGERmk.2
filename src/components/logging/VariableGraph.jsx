@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   GRAPH_NORMALIZED_EXTENT,
   VIEWPORTS,
@@ -9,21 +9,20 @@ import {
   filterToViewport,
   getTimeRange,
   timestampToX,
-  getXAxisTicks,
   getLinePath,
 } from '../../utils/graphUtils';
 
 // Marker shapes for different variables
 const MARKERS = {
   circle: (x, y, r, fill, stroke) => (
-    <circle cx={x} cy={y} r={r} fill={fill} stroke={stroke} strokeWidth="1.5" />
+    <circle cx={x} cy={y} r={r} fill={fill} stroke={stroke} strokeWidth="1" />
   ),
   diamond: (x, y, r, fill, stroke) => (
     <polygon
       points={`${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}`}
       fill={fill}
       stroke={stroke}
-      strokeWidth="1.5"
+      strokeWidth="1"
     />
   ),
   square: (x, y, r, fill, stroke) => (
@@ -34,7 +33,7 @@ const MARKERS = {
       height={r * 1.4}
       fill={fill}
       stroke={stroke}
-      strokeWidth="1.5"
+      strokeWidth="1"
     />
   ),
   triangle: (x, y, r, fill, stroke) => (
@@ -42,12 +41,13 @@ const MARKERS = {
       points={`${x},${y - r} ${x + r},${y + r * 0.7} ${x - r},${y + r * 0.7}`}
       fill={fill}
       stroke={stroke}
-      strokeWidth="1.5"
+      strokeWidth="1"
     />
   ),
 };
 
 const MARKER_TYPES = ['circle', 'diamond', 'square', 'triangle'];
+const VIEWPORT_ORDER = ['week', 'month', 'year'];
 
 /**
  * VariableGraph - Multi-variable line graph with normalization and viewports
@@ -60,13 +60,26 @@ export default function VariableGraph({
 }) {
   const [viewport, setViewport] = useState('month');
   const [hoveredPoint, setHoveredPoint] = useState(null);
+  const containerRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(600);
 
-  // Graph dimensions
+  // Track container width for proper scaling
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth);
+      }
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+
+  // Layout constants (in pixels, will scale with container)
   const height = 130;
-  const width = 800;
-  const padding = { top: 12, right: 8, bottom: 18, left: 32 };
-  const graphWidth = width - padding.left - padding.right;
+  const padding = { top: 8, right: 10, bottom: 16, left: 28 };
   const graphHeight = height - padding.top - padding.bottom;
+  const graphWidth = containerWidth - padding.left - padding.right;
 
   // Filter and potentially aggregate data based on viewport
   const filteredHistory = useMemo(() => {
@@ -88,7 +101,7 @@ export default function VariableGraph({
     return result;
   }, [variables, filteredHistory]);
 
-  // Generate data points for each variable
+  // Generate data points for each variable (as percentages)
   const series = useMemo(() => {
     return variables.map((variable, varIndex) => {
       const domain = domains[variable.id];
@@ -101,13 +114,14 @@ export default function VariableGraph({
           const normalizedY = normalizeValueForGraph(absoluteValue, domain);
 
           const timestamp = new Date(h.date).getTime();
-          const x = timestampToX(timestamp, timeRange, graphWidth);
-          const y =
-            ((GRAPH_NORMALIZED_EXTENT.max - normalizedY) /
-              (GRAPH_NORMALIZED_EXTENT.max - GRAPH_NORMALIZED_EXTENT.min)) *
-            graphHeight;
+          // X as percentage of graph width
+          const xPct = timeRange.max === timeRange.min ? 0.5 :
+            (timestamp - timeRange.min) / (timeRange.max - timeRange.min);
+          // Y as percentage of graph height
+          const yPct = (GRAPH_NORMALIZED_EXTENT.max - normalizedY) /
+            (GRAPH_NORMALIZED_EXTENT.max - GRAPH_NORMALIZED_EXTENT.min);
 
-          return { x, y, date: h.date, value: absoluteValue, index };
+          return { xPct, yPct, date: h.date, value: absoluteValue, index };
         })
         .filter(p => p !== null);
 
@@ -119,60 +133,110 @@ export default function VariableGraph({
         points,
       };
     });
-  }, [variables, filteredHistory, domains, timeRange, graphWidth, graphHeight]);
+  }, [variables, filteredHistory, domains, timeRange]);
 
   // Axis ticks for active variable
   const axisTicks = useMemo(() => {
     if (!activeVariable) return [];
     const variable = variables.find(v => v.id === activeVariable);
     if (!variable) return [];
-    return getAxisTicks(domains[activeVariable], variable.stepSize, 5);
+    return getAxisTicks(domains[activeVariable], variable.stepSize, 7);
   }, [activeVariable, variables, domains]);
 
-  // X-axis ticks
+  // X-axis ticks - more frequent based on viewport
   const xTicks = useMemo(() => {
-    return getXAxisTicks(timeRange, viewport, graphWidth);
-  }, [timeRange, viewport, graphWidth]);
+    const { min, max } = timeRange;
+    const ticks = [];
 
-  // Map normalized Y to pixel Y
-  const normalizedToGraphY = normalizedY => {
-    return (
-      ((GRAPH_NORMALIZED_EXTENT.max - normalizedY) /
-        (GRAPH_NORMALIZED_EXTENT.max - GRAPH_NORMALIZED_EXTENT.min)) *
-      graphHeight
-    );
-  };
+    // Determine tick count based on viewport
+    let tickCount;
+    if (viewport === 'week') tickCount = 7;
+    else if (viewport === 'month') tickCount = 10;
+    else tickCount = 12;
 
-  const handleViewportChange = newViewport => {
+    for (let i = 0; i < tickCount; i++) {
+      const pct = tickCount > 1 ? i / (tickCount - 1) : 0.5;
+      const timestamp = min + (max - min) * pct;
+      const date = new Date(timestamp);
+
+      let label;
+      if (viewport === 'year') {
+        label = date.toLocaleDateString([], { month: 'short' });
+      } else {
+        label = date.getDate().toString();
+      }
+
+      ticks.push({ pct, label, timestamp });
+    }
+
+    return ticks;
+  }, [timeRange, viewport]);
+
+  // Y-axis grid lines (more frequent)
+  const yGridLines = useMemo(() => {
+    const lines = [];
+    const count = 8;
+    for (let i = 0; i <= count; i++) {
+      lines.push(i / count);
+    }
+    return lines;
+  }, []);
+
+  // Map percentage to pixel Y
+  const pctToY = (pct) => padding.top + pct * graphHeight;
+  const pctToX = (pct) => padding.left + pct * graphWidth;
+
+  // Cycle viewport on click
+  const cycleViewport = () => {
+    const currentIndex = VIEWPORT_ORDER.indexOf(viewport);
+    const nextIndex = (currentIndex + 1) % VIEWPORT_ORDER.length;
+    const newViewport = VIEWPORT_ORDER[nextIndex];
     setViewport(newViewport);
     onViewportChange?.(newViewport);
   };
 
   return (
     <div className="h-[130px] bg-white border-b-2 border-black flex">
-      <div className="flex-1 relative overflow-hidden">
-        {/* CSS grid background */}
+      <div ref={containerRef} className="flex-1 relative overflow-hidden">
+        {/* Grid background - contained to graph area only */}
         <div
-          className="absolute inset-0"
+          className="absolute"
           style={{
-            backgroundImage:
-              'linear-gradient(#f0f0f0 1px, transparent 1px), linear-gradient(90deg, #f0f0f0 1px, transparent 1px)',
-            backgroundSize: '8px 8px',
+            left: padding.left,
+            top: padding.top,
+            width: graphWidth,
+            height: graphHeight,
+            backgroundImage: 'linear-gradient(#f0f0f0 1px, transparent 1px), linear-gradient(90deg, #f0f0f0 1px, transparent 1px)',
+            backgroundSize: '12px 12px',
           }}
         />
         <div
-          className="absolute inset-0"
+          className="absolute"
           style={{
-            backgroundImage:
-              'linear-gradient(#ddd 1px, transparent 1px), linear-gradient(90deg, #ddd 1px, transparent 1px)',
-            backgroundSize: '40px 40px',
+            left: padding.left,
+            top: padding.top,
+            width: graphWidth,
+            height: graphHeight,
+            backgroundImage: 'linear-gradient(#ddd 1px, transparent 1px), linear-gradient(90deg, #ddd 1px, transparent 1px)',
+            backgroundSize: '48px 48px',
           }}
         />
 
+        {/* Viewport toggle button - top left */}
+        <button
+          onClick={cycleViewport}
+          className="absolute z-10 bg-black text-white text-[9px] font-bold px-1.5 py-0.5 rounded hover:bg-gray-800 transition-colors"
+          style={{ left: padding.left + 4, top: padding.top + 4 }}
+        >
+          {VIEWPORTS[viewport].label}
+        </button>
+
+        {/* SVG for lines and markers only */}
         <svg
-          viewBox={`0 0 ${width} ${height}`}
-          preserveAspectRatio="none"
-          className="absolute inset-0 w-full h-full"
+          width={containerWidth}
+          height={height}
+          className="absolute inset-0"
+          style={{ overflow: 'visible' }}
         >
           {/* Y-axis line */}
           <line
@@ -181,7 +245,7 @@ export default function VariableGraph({
             x2={padding.left}
             y2={padding.top + graphHeight}
             stroke="#333"
-            strokeWidth="1.5"
+            strokeWidth="1"
           />
 
           {/* X-axis line */}
@@ -191,109 +255,60 @@ export default function VariableGraph({
             x2={padding.left + graphWidth}
             y2={padding.top + graphHeight}
             stroke="#333"
-            strokeWidth="1.5"
+            strokeWidth="1"
           />
 
-          {/* Y-axis ticks and grid lines */}
-          {[0, 0.25, 0.5, 0.75, 1].map(ratio => {
-            const normalizedY = GRAPH_NORMALIZED_EXTENT.min + ratio * (GRAPH_NORMALIZED_EXTENT.max - GRAPH_NORMALIZED_EXTENT.min);
-            const y = normalizedToGraphY(normalizedY);
-            return (
-              <g key={ratio}>
-                {/* Grid line */}
-                <line
-                  x1={padding.left}
-                  y1={padding.top + y}
-                  x2={padding.left + graphWidth}
-                  y2={padding.top + y}
-                  stroke="#e0e0e0"
-                  strokeWidth="0.5"
-                  strokeDasharray={ratio === 0.5 ? 'none' : '2,2'}
-                />
-                {/* Tick mark */}
-                <line
-                  x1={padding.left - 4}
-                  y1={padding.top + y}
-                  x2={padding.left}
-                  y2={padding.top + y}
-                  stroke="#333"
-                  strokeWidth="1.5"
-                />
-              </g>
-            );
-          })}
-
-          {/* Y-axis labels - only when variable is active */}
-          {activeVariable &&
-            axisTicks.slice(0, 5).map((tick, index) => {
-              const y = normalizedToGraphY(tick.normalizedY);
-              const variable = variables.find(v => v.id === activeVariable);
-              if (!variable) return null;
-
-              return (
-                <text
-                  key={index}
-                  x={padding.left - 6}
-                  y={padding.top + y}
-                  textAnchor="end"
-                  dominantBaseline="middle"
-                  fontSize="7"
-                  fontWeight="600"
-                  fill={variable.color}
-                  fontFamily="system-ui, sans-serif"
-                >
-                  {formatAxisValue(tick.value, variable)}
-                </text>
-              );
-            })}
-
-          {/* X-axis ticks and labels */}
-          {xTicks.map((tick, index) => (
-            <g key={index}>
+          {/* Y-axis grid lines and ticks */}
+          {yGridLines.map((pct, i) => (
+            <g key={i}>
               <line
-                x1={padding.left + tick.x}
-                y1={padding.top + graphHeight}
-                x2={padding.left + tick.x}
-                y2={padding.top + graphHeight + 4}
-                stroke="#333"
-                strokeWidth="1.5"
+                x1={padding.left}
+                y1={pctToY(pct)}
+                x2={padding.left + graphWidth}
+                y2={pctToY(pct)}
+                stroke={pct === 0.5 ? '#bbb' : '#e5e5e5'}
+                strokeWidth="0.5"
               />
-              <text
-                x={padding.left + tick.x}
-                y={height - 2}
-                textAnchor="middle"
-                fontSize="7"
-                fill="#666"
-                fontWeight="500"
-                fontFamily="system-ui, sans-serif"
-              >
-                {tick.label}
-              </text>
+              <line
+                x1={padding.left - 3}
+                y1={pctToY(pct)}
+                x2={padding.left}
+                y2={pctToY(pct)}
+                stroke="#333"
+                strokeWidth="1"
+              />
             </g>
           ))}
 
-          {/* Center baseline (normalized 0) */}
-          <line
-            x1={padding.left}
-            y1={padding.top + normalizedToGraphY(0)}
-            x2={padding.left + graphWidth}
-            y2={padding.top + normalizedToGraphY(0)}
-            stroke="#999"
-            strokeWidth="1"
-            strokeDasharray="4,2"
-          />
+          {/* X-axis ticks */}
+          {xTicks.map((tick, i) => (
+            <line
+              key={i}
+              x1={pctToX(tick.pct)}
+              y1={padding.top + graphHeight}
+              x2={pctToX(tick.pct)}
+              y2={padding.top + graphHeight + 3}
+              stroke="#333"
+              strokeWidth="1"
+            />
+          ))}
 
           {/* Data lines and markers */}
           {series.map(s => {
             const isActive = activeVariable === null || activeVariable === s.id;
             const opacity = isActive ? 1 : 0.2;
-            const strokeWidth = activeVariable === s.id ? 2.5 : 1.5;
+            const strokeWidth = activeVariable === s.id ? 2 : 1.5;
+
+            // Convert percentage points to pixel coordinates
+            const pixelPoints = s.points.map(p => ({
+              x: pctToX(p.xPct),
+              y: pctToY(p.yPct),
+            }));
 
             return (
               <g key={s.id}>
-                {/* Line path */}
                 <path
-                  d={getLinePath(s.points.map(p => ({ x: padding.left + p.x, y: padding.top + p.y })))}
+                  d={getLinePath(pixelPoints)}
                   fill="none"
                   stroke={s.color}
                   strokeWidth={strokeWidth}
@@ -302,111 +317,100 @@ export default function VariableGraph({
                   strokeLinejoin="round"
                 />
 
-                {/* Markers */}
                 {s.points.map((point, idx) => {
                   const MarkerFn = MARKERS[s.marker] || MARKERS.circle;
-                  const markerSize = activeVariable === s.id ? 4 : 3;
+                  const markerSize = activeVariable === s.id ? 3.5 : 2.5;
+                  const px = pctToX(point.xPct);
+                  const py = pctToY(point.yPct);
 
                   return (
                     <g
                       key={idx}
                       style={{ cursor: 'pointer' }}
                       opacity={opacity}
-                      onMouseEnter={() => setHoveredPoint({ ...point, variable: s })}
+                      onMouseEnter={() => setHoveredPoint({ ...point, px, py, variable: s })}
                       onMouseLeave={() => setHoveredPoint(null)}
                     >
-                      {MarkerFn(
-                        padding.left + point.x,
-                        padding.top + point.y,
-                        markerSize,
-                        s.color,
-                        '#fff'
-                      )}
+                      {MarkerFn(px, py, markerSize, s.color, '#fff')}
                     </g>
                   );
                 })}
               </g>
             );
           })}
-
-          {/* Hover tooltip */}
-          {hoveredPoint && (
-            <g>
-              <rect
-                x={Math.min(
-                  Math.max(padding.left + hoveredPoint.x - 40, padding.left),
-                  padding.left + graphWidth - 80
-                )}
-                y={Math.max(padding.top + hoveredPoint.y - 28, padding.top)}
-                width="80"
-                height="24"
-                fill="rgba(0,0,0,0.9)"
-                rx="3"
-              />
-              <text
-                x={Math.min(
-                  Math.max(padding.left + hoveredPoint.x, padding.left + 40),
-                  padding.left + graphWidth - 40
-                )}
-                y={Math.max(padding.top + hoveredPoint.y - 18, padding.top + 10)}
-                textAnchor="middle"
-                fontSize="8"
-                fontWeight="700"
-                fill={hoveredPoint.variable.color}
-                fontFamily="system-ui, sans-serif"
-              >
-                {hoveredPoint.variable.label}
-              </text>
-              <text
-                x={Math.min(
-                  Math.max(padding.left + hoveredPoint.x, padding.left + 40),
-                  padding.left + graphWidth - 40
-                )}
-                y={Math.max(padding.top + hoveredPoint.y - 7, padding.top + 21)}
-                textAnchor="middle"
-                fontSize="8"
-                fill="#fff"
-                fontFamily="system-ui, sans-serif"
-              >
-                {formatAxisValue(
-                  hoveredPoint.value,
-                  variables.find(v => v.id === hoveredPoint.variable.id) || {}
-                )}
-              </text>
-            </g>
-          )}
         </svg>
-      </div>
 
-      {/* Right panel: Viewport selector + Compounds */}
-      <div className="w-[22px] bg-black flex flex-col">
-        {/* Viewport buttons */}
-        <div className="flex flex-col items-center py-1 gap-0.5 border-b border-gray-800">
-          {Object.entries(VIEWPORTS).map(([key, config]) => (
-            <button
-              key={key}
-              onClick={() => handleViewportChange(key)}
-              className={`w-4 h-4 text-[6px] font-bold rounded-sm transition-colors ${
-                viewport === key
-                  ? 'bg-white text-black'
-                  : 'bg-transparent text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              {config.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Compounds button */}
-        <button className="flex-1 flex items-center justify-center hover:bg-gray-900 transition-colors">
+        {/* X-axis labels (HTML for crisp text) */}
+        {xTicks.map((tick, i) => (
           <span
-            className="text-[7px] tracking-[0.15em] text-gray-600 font-bold"
-            style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+            key={i}
+            className="absolute text-[9px] text-gray-600 font-medium"
+            style={{
+              left: pctToX(tick.pct),
+              top: padding.top + graphHeight + 4,
+              transform: 'translateX(-50%)',
+            }}
           >
-            COMPOUNDS
+            {tick.label}
           </span>
-        </button>
+        ))}
+
+        {/* Y-axis labels - only when variable is active (HTML) */}
+        {activeVariable &&
+          axisTicks.slice(0, 7).map((tick, index) => {
+            const variable = variables.find(v => v.id === activeVariable);
+            if (!variable) return null;
+            const yPct = (GRAPH_NORMALIZED_EXTENT.max - tick.normalizedY) /
+              (GRAPH_NORMALIZED_EXTENT.max - GRAPH_NORMALIZED_EXTENT.min);
+
+            return (
+              <span
+                key={index}
+                className="absolute text-[8px] font-semibold"
+                style={{
+                  right: containerWidth - padding.left + 4,
+                  top: pctToY(yPct),
+                  transform: 'translateY(-50%)',
+                  color: variable.color,
+                }}
+              >
+                {formatAxisValue(tick.value, variable)}
+              </span>
+            );
+          })}
+
+        {/* Hover tooltip (HTML) */}
+        {hoveredPoint && (
+          <div
+            className="absolute bg-black/90 text-white px-2 py-1 rounded text-[10px] pointer-events-none z-20"
+            style={{
+              left: Math.min(Math.max(hoveredPoint.px, 50), containerWidth - 70),
+              top: Math.max(hoveredPoint.py - 36, padding.top),
+              transform: 'translateX(-50%)',
+            }}
+          >
+            <div className="font-bold" style={{ color: hoveredPoint.variable.color }}>
+              {hoveredPoint.variable.label}
+            </div>
+            <div>
+              {formatAxisValue(
+                hoveredPoint.value,
+                variables.find(v => v.id === hoveredPoint.variable.id) || {}
+              )}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Compounds strip */}
+      <button className="w-[22px] bg-black flex items-center justify-center hover:bg-gray-900 transition-colors">
+        <span
+          className="text-[7px] tracking-[0.15em] text-gray-600 font-bold"
+          style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+        >
+          COMPOUNDS
+        </span>
+      </button>
     </div>
   );
 }
