@@ -1,158 +1,171 @@
 import React, { useState, useMemo } from 'react';
 import {
   GRAPH_NORMALIZED_EXTENT,
+  VIEWPORTS,
   getGraphDomain,
   normalizeValueForGraph,
   getAxisTicks,
   formatAxisValue,
+  filterToViewport,
+  getTimeRange,
+  timestampToX,
+  getXAxisTicks,
+  getLinePath,
 } from '../../utils/graphUtils';
 
+// Marker shapes for different variables
+const MARKERS = {
+  circle: (x, y, r, fill, stroke) => (
+    <circle cx={x} cy={y} r={r} fill={fill} stroke={stroke} strokeWidth="1.5" />
+  ),
+  diamond: (x, y, r, fill, stroke) => (
+    <polygon
+      points={`${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}`}
+      fill={fill}
+      stroke={stroke}
+      strokeWidth="1.5"
+    />
+  ),
+  square: (x, y, r, fill, stroke) => (
+    <rect
+      x={x - r * 0.7}
+      y={y - r * 0.7}
+      width={r * 1.4}
+      height={r * 1.4}
+      fill={fill}
+      stroke={stroke}
+      strokeWidth="1.5"
+    />
+  ),
+  triangle: (x, y, r, fill, stroke) => (
+    <polygon
+      points={`${x},${y - r} ${x + r},${y + r * 0.7} ${x - r},${y + r * 0.7}`}
+      fill={fill}
+      stroke={stroke}
+      strokeWidth="1.5"
+    />
+  ),
+};
+
+const MARKER_TYPES = ['circle', 'diamond', 'square', 'triangle'];
+
 /**
- * VariableGraph - Multi-variable line graph with normalization
- *
- * Props:
- * - variables: Array of variable configs from SLIDER_CONFIGS
- * - history: Array of { date, values } where values is { variableId: relativeValue }
- * - activeVariable: Currently dragged variable ID (shows Y-axis labels)
+ * VariableGraph - Multi-variable line graph with normalization and viewports
  */
 export default function VariableGraph({
   variables = [],
   history = [],
   activeVariable = null,
+  onViewportChange = null,
 }) {
+  const [viewport, setViewport] = useState('month');
   const [hoveredPoint, setHoveredPoint] = useState(null);
 
   // Graph dimensions
   const height = 130;
-  const width = 800; // Will be scaled by viewBox
-  const padding = { top: 4, right: 30, bottom: 10, left: 18 };
+  const width = 800;
+  const padding = { top: 12, right: 8, bottom: 18, left: 32 };
   const graphWidth = width - padding.left - padding.right;
   const graphHeight = height - padding.top - padding.bottom;
+
+  // Filter and potentially aggregate data based on viewport
+  const filteredHistory = useMemo(() => {
+    return filterToViewport(history, viewport);
+  }, [history, viewport]);
+
+  // Time range for X-axis
+  const timeRange = useMemo(() => {
+    return getTimeRange(filteredHistory);
+  }, [filteredHistory]);
 
   // Calculate domains for each variable
   const domains = useMemo(() => {
     const result = {};
     variables.forEach(variable => {
-      const values = history.map(h => h.values[variable.id] || 0);
+      const values = filteredHistory.map(h => h.values[variable.id]).filter(v => v != null);
       result[variable.id] = getGraphDomain(variable, values);
     });
     return result;
-  }, [variables, history]);
+  }, [variables, filteredHistory]);
 
-  // Generate normalized data points for each variable
+  // Generate data points for each variable
   const series = useMemo(() => {
-    return variables.map(variable => {
+    return variables.map((variable, varIndex) => {
       const domain = domains[variable.id];
-      const points = history.map((h, index) => {
-        const relativeValue = h.values[variable.id];
-        if (relativeValue === null || relativeValue === undefined) return null;
+      const points = filteredHistory
+        .map((h, index) => {
+          const relativeValue = h.values[variable.id];
+          if (relativeValue === null || relativeValue === undefined) return null;
 
-        const absoluteValue = variable.baseline + relativeValue;
-        const normalizedY = normalizeValueForGraph(absoluteValue, domain);
+          const absoluteValue = variable.baseline + relativeValue;
+          const normalizedY = normalizeValueForGraph(absoluteValue, domain);
 
-        // Map index to X position
-        const x = (index / Math.max(history.length - 1, 1)) * graphWidth;
-        // Map normalized Y to graph space (invert because SVG Y increases downward)
-        const y = ((GRAPH_NORMALIZED_EXTENT.max - normalizedY) /
-          (GRAPH_NORMALIZED_EXTENT.max - GRAPH_NORMALIZED_EXTENT.min)) * graphHeight;
+          const timestamp = new Date(h.date).getTime();
+          const x = timestampToX(timestamp, timeRange, graphWidth);
+          const y =
+            ((GRAPH_NORMALIZED_EXTENT.max - normalizedY) /
+              (GRAPH_NORMALIZED_EXTENT.max - GRAPH_NORMALIZED_EXTENT.min)) *
+            graphHeight;
 
-        return { x, y, date: h.date, value: absoluteValue, index };
-      });
+          return { x, y, date: h.date, value: absoluteValue, index };
+        })
+        .filter(p => p !== null);
 
       return {
         id: variable.id,
         label: variable.label,
-        color: variable.color,
-        points: points.filter(p => p !== null),
+        color: variable.color || '#666',
+        marker: variable.marker || MARKER_TYPES[varIndex % MARKER_TYPES.length],
+        points,
       };
     });
-  }, [variables, history, domains, graphWidth, graphHeight]);
+  }, [variables, filteredHistory, domains, timeRange, graphWidth, graphHeight]);
 
-  // Generate axis ticks for active variable (being dragged)
+  // Axis ticks for active variable
   const axisTicks = useMemo(() => {
     if (!activeVariable) return [];
     const variable = variables.find(v => v.id === activeVariable);
     if (!variable) return [];
-
-    const domain = domains[activeVariable];
-    return getAxisTicks(domain, variable.stepSize);
+    return getAxisTicks(domains[activeVariable], variable.stepSize, 5);
   }, [activeVariable, variables, domains]);
 
-  // Generate smooth curve using monotone cubic interpolation
-  // Control points derived from tangents for consistent thickness
-  const getLinePath = (points) => {
-    if (points.length === 0) return '';
-    if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
-    if (points.length === 2) {
-      return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
-    }
+  // X-axis ticks
+  const xTicks = useMemo(() => {
+    return getXAxisTicks(timeRange, viewport, graphWidth);
+  }, [timeRange, viewport, graphWidth]);
 
-    // Calculate tangents (slopes) at each point for monotone interpolation
-    const tangents = [];
-
-    for (let i = 0; i < points.length; i++) {
-      if (i === 0) {
-        // First point: use slope to next point
-        const dx = points[1].x - points[0].x;
-        const dy = points[1].y - points[0].y;
-        tangents.push(dy / dx);
-      } else if (i === points.length - 1) {
-        // Last point: use slope from previous point
-        const dx = points[i].x - points[i - 1].x;
-        const dy = points[i].y - points[i - 1].y;
-        tangents.push(dy / dx);
-      } else {
-        // Middle points: average of adjacent slopes
-        const dx1 = points[i].x - points[i - 1].x;
-        const dy1 = points[i].y - points[i - 1].y;
-        const dx2 = points[i + 1].x - points[i].x;
-        const dy2 = points[i + 1].y - points[i].y;
-        tangents.push((dy1 / dx1 + dy2 / dx2) / 2);
-      }
-    }
-
-    // Build path using calculated tangents for control points
-    let path = `M ${points[0].x} ${points[0].y}`;
-
-    for (let i = 0; i < points.length - 1; i++) {
-      const p0 = points[i];
-      const p1 = points[i + 1];
-      const dx = p1.x - p0.x;
-
-      // Control points positioned 1/3 along X, using tangent-based Y
-      const cp1x = p0.x + dx / 3;
-      const cp1y = p0.y + (tangents[i] * dx) / 3;
-      const cp2x = p1.x - dx / 3;
-      const cp2y = p1.y - (tangents[i + 1] * dx) / 3;
-
-      path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p1.x} ${p1.y}`;
-    }
-
-    return path;
+  // Map normalized Y to pixel Y
+  const normalizedToGraphY = normalizedY => {
+    return (
+      ((GRAPH_NORMALIZED_EXTENT.max - normalizedY) /
+        (GRAPH_NORMALIZED_EXTENT.max - GRAPH_NORMALIZED_EXTENT.min)) *
+      graphHeight
+    );
   };
 
-  // Map normalized Y to graph Y coordinate
-  const normalizedToGraphY = (normalizedY) => {
-    return ((GRAPH_NORMALIZED_EXTENT.max - normalizedY) /
-      (GRAPH_NORMALIZED_EXTENT.max - GRAPH_NORMALIZED_EXTENT.min)) * graphHeight;
+  const handleViewportChange = newViewport => {
+    setViewport(newViewport);
+    onViewportChange?.(newViewport);
   };
 
   return (
     <div className="h-[130px] bg-white border-b-2 border-black flex">
       <div className="flex-1 relative overflow-hidden">
-        {/* CSS grid background - tiles correctly at any container size */}
+        {/* CSS grid background */}
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: 'linear-gradient(#e8e8e8 1px, transparent 1px), linear-gradient(90deg, #e8e8e8 1px, transparent 1px)',
-            backgroundSize: '5px 5px'
+            backgroundImage:
+              'linear-gradient(#f0f0f0 1px, transparent 1px), linear-gradient(90deg, #f0f0f0 1px, transparent 1px)',
+            backgroundSize: '8px 8px',
           }}
         />
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: 'linear-gradient(#ccc 1px, transparent 1px), linear-gradient(90deg, #ccc 1px, transparent 1px)',
-            backgroundSize: '25px 25px'
+            backgroundImage:
+              'linear-gradient(#ddd 1px, transparent 1px), linear-gradient(90deg, #ddd 1px, transparent 1px)',
+            backgroundSize: '40px 40px',
           }}
         />
 
@@ -161,8 +174,105 @@ export default function VariableGraph({
           preserveAspectRatio="none"
           className="absolute inset-0 w-full h-full"
         >
+          {/* Y-axis line */}
+          <line
+            x1={padding.left}
+            y1={padding.top}
+            x2={padding.left}
+            y2={padding.top + graphHeight}
+            stroke="#333"
+            strokeWidth="1.5"
+          />
 
-          {/* Center line (normalized 0) */}
+          {/* X-axis line */}
+          <line
+            x1={padding.left}
+            y1={padding.top + graphHeight}
+            x2={padding.left + graphWidth}
+            y2={padding.top + graphHeight}
+            stroke="#333"
+            strokeWidth="1.5"
+          />
+
+          {/* Y-axis ticks and grid lines */}
+          {[0, 0.25, 0.5, 0.75, 1].map(ratio => {
+            const normalizedY = GRAPH_NORMALIZED_EXTENT.min + ratio * (GRAPH_NORMALIZED_EXTENT.max - GRAPH_NORMALIZED_EXTENT.min);
+            const y = normalizedToGraphY(normalizedY);
+            return (
+              <g key={ratio}>
+                {/* Grid line */}
+                <line
+                  x1={padding.left}
+                  y1={padding.top + y}
+                  x2={padding.left + graphWidth}
+                  y2={padding.top + y}
+                  stroke="#e0e0e0"
+                  strokeWidth="0.5"
+                  strokeDasharray={ratio === 0.5 ? 'none' : '2,2'}
+                />
+                {/* Tick mark */}
+                <line
+                  x1={padding.left - 4}
+                  y1={padding.top + y}
+                  x2={padding.left}
+                  y2={padding.top + y}
+                  stroke="#333"
+                  strokeWidth="1.5"
+                />
+              </g>
+            );
+          })}
+
+          {/* Y-axis labels - only when variable is active */}
+          {activeVariable &&
+            axisTicks.slice(0, 5).map((tick, index) => {
+              const y = normalizedToGraphY(tick.normalizedY);
+              const variable = variables.find(v => v.id === activeVariable);
+              if (!variable) return null;
+
+              return (
+                <text
+                  key={index}
+                  x={padding.left - 6}
+                  y={padding.top + y}
+                  textAnchor="end"
+                  dominantBaseline="middle"
+                  fontSize="7"
+                  fontWeight="600"
+                  fill={variable.color}
+                  fontFamily="system-ui, sans-serif"
+                >
+                  {formatAxisValue(tick.value, variable)}
+                </text>
+              );
+            })}
+
+          {/* X-axis ticks and labels */}
+          {xTicks.map((tick, index) => (
+            <g key={index}>
+              <line
+                x1={padding.left + tick.x}
+                y1={padding.top + graphHeight}
+                x2={padding.left + tick.x}
+                y2={padding.top + graphHeight + 4}
+                stroke="#333"
+                strokeWidth="1.5"
+              />
+              <text
+                x={padding.left + tick.x}
+                y={height - 2}
+                textAnchor="middle"
+                fontSize="7"
+                fill="#666"
+                fontWeight="500"
+                fontFamily="system-ui, sans-serif"
+              >
+                {tick.label}
+              </text>
+            </g>
+          ))}
+
+          {/* Center baseline (normalized 0) */}
           <line
             x1={padding.left}
             y1={padding.top + normalizedToGraphY(0)}
@@ -170,100 +280,52 @@ export default function VariableGraph({
             y2={padding.top + normalizedToGraphY(0)}
             stroke="#999"
             strokeWidth="1"
-            opacity="0.5"
+            strokeDasharray="4,2"
           />
 
-          {/* Y-axis tick marks - always visible */}
-          {[0.75, 0.5, 0.25, 0, -0.25, -0.5, -0.75].map(normalizedY => {
-            const y = normalizedToGraphY(normalizedY);
-            return (
-              <line
-                key={normalizedY}
-                x1={padding.left - 3}
-                y1={padding.top + y}
-                x2={padding.left}
-                y2={padding.top + y}
-                stroke="#666"
-                strokeWidth="1"
-              />
-            );
-          })}
-
-          {/* Y-axis labels - only show when dragging */}
-          {activeVariable && axisTicks.slice(0, 5).map((tick, index) => {
-            const y = normalizedToGraphY(tick.normalizedY);
-            const variable = variables.find(v => v.id === activeVariable);
+          {/* Data lines and markers */}
+          {series.map(s => {
+            const isActive = activeVariable === null || activeVariable === s.id;
+            const opacity = isActive ? 1 : 0.2;
+            const strokeWidth = activeVariable === s.id ? 2.5 : 1.5;
 
             return (
-              <text
-                key={index}
-                x={padding.left - 5}
-                y={padding.top + y}
-                textAnchor="end"
-                alignmentBaseline="middle"
-                fontSize="6"
-                fontWeight="500"
-                fill={variable.color}
-              >
-                {formatAxisValue(tick.value, variable)}
-              </text>
-            );
-          })}
-
-          {/* Line series for each variable */}
-          {series.map(s => (
-            <g key={s.id}>
-              {/* Line path */}
-              <path
-                d={getLinePath(s.points)}
-                fill="none"
-                stroke={s.color}
-                strokeWidth={activeVariable === s.id ? 2.5 : 1.5}
-                strokeOpacity={activeVariable === null || activeVariable === s.id ? 1 : 0.25}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                vectorEffect="non-scaling-stroke"
-                transform={`translate(${padding.left}, ${padding.top})`}
-              />
-
-              {/* Data point circles */}
-              {s.points.map((point, index) => (
-                <circle
-                  key={index}
-                  cx={padding.left + point.x}
-                  cy={padding.top + point.y}
-                  r={activeVariable === s.id ? 2.5 : 1.5}
-                  fill={s.color}
-                  fillOpacity={activeVariable === null || activeVariable === s.id ? 1 : 0.25}
-                  stroke="#fff"
-                  strokeWidth="1"
-                  style={{ cursor: 'pointer' }}
-                  onMouseEnter={() => setHoveredPoint({ ...point, variable: s })}
-                  onMouseLeave={() => setHoveredPoint(null)}
+              <g key={s.id}>
+                {/* Line path */}
+                <path
+                  d={getLinePath(s.points.map(p => ({ x: padding.left + p.x, y: padding.top + p.y })))}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth={strokeWidth}
+                  strokeOpacity={opacity}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 />
-              ))}
-            </g>
-          ))}
 
-          {/* X-axis labels (day of month) */}
-          {history.length > 0 && [0, 7, 14, 21, 29].map(index => {
-            if (index >= history.length) return null;
-            const x = (index / Math.max(history.length - 1, 1)) * graphWidth;
-            const date = new Date(history[index].date);
-            const day = date.getDate();
+                {/* Markers */}
+                {s.points.map((point, idx) => {
+                  const MarkerFn = MARKERS[s.marker] || MARKERS.circle;
+                  const markerSize = activeVariable === s.id ? 4 : 3;
 
-            return (
-              <text
-                key={index}
-                x={padding.left + x}
-                y={height - 1}
-                textAnchor="middle"
-                fontSize="6"
-                fill="#666"
-                fontWeight="500"
-              >
-                {day.toString().padStart(2, '0')}
-              </text>
+                  return (
+                    <g
+                      key={idx}
+                      style={{ cursor: 'pointer' }}
+                      opacity={opacity}
+                      onMouseEnter={() => setHoveredPoint({ ...point, variable: s })}
+                      onMouseLeave={() => setHoveredPoint(null)}
+                    >
+                      {MarkerFn(
+                        padding.left + point.x,
+                        padding.top + point.y,
+                        markerSize,
+                        s.color,
+                        '#fff'
+                      )}
+                    </g>
+                  );
+                })}
+              </g>
             );
           })}
 
@@ -271,33 +333,44 @@ export default function VariableGraph({
           {hoveredPoint && (
             <g>
               <rect
-                x={Math.min(Math.max(padding.left + hoveredPoint.x - 35, padding.left), padding.left + graphWidth - 70)}
-                y={Math.max(padding.top + hoveredPoint.y - 22, padding.top + 5)}
-                width="70"
-                height="18"
-                fill="rgba(0, 0, 0, 0.95)"
-                rx="2"
+                x={Math.min(
+                  Math.max(padding.left + hoveredPoint.x - 40, padding.left),
+                  padding.left + graphWidth - 80
+                )}
+                y={Math.max(padding.top + hoveredPoint.y - 28, padding.top)}
+                width="80"
+                height="24"
+                fill="rgba(0,0,0,0.9)"
+                rx="3"
               />
               <text
-                x={Math.min(Math.max(padding.left + hoveredPoint.x, padding.left + 35), padding.left + graphWidth - 35)}
-                y={Math.max(padding.top + hoveredPoint.y - 14, padding.top + 13)}
+                x={Math.min(
+                  Math.max(padding.left + hoveredPoint.x, padding.left + 40),
+                  padding.left + graphWidth - 40
+                )}
+                y={Math.max(padding.top + hoveredPoint.y - 18, padding.top + 10)}
                 textAnchor="middle"
-                fontSize="7"
+                fontSize="8"
                 fontWeight="700"
                 fill={hoveredPoint.variable.color}
+                fontFamily="system-ui, sans-serif"
               >
                 {hoveredPoint.variable.label}
               </text>
               <text
-                x={Math.min(Math.max(padding.left + hoveredPoint.x, padding.left + 35), padding.left + graphWidth - 35)}
-                y={Math.max(padding.top + hoveredPoint.y - 6, padding.top + 21)}
+                x={Math.min(
+                  Math.max(padding.left + hoveredPoint.x, padding.left + 40),
+                  padding.left + graphWidth - 40
+                )}
+                y={Math.max(padding.top + hoveredPoint.y - 7, padding.top + 21)}
                 textAnchor="middle"
-                fontSize="7"
+                fontSize="8"
                 fill="#fff"
+                fontFamily="system-ui, sans-serif"
               >
                 {formatAxisValue(
                   hoveredPoint.value,
-                  variables.find(v => v.id === hoveredPoint.variable.id)
+                  variables.find(v => v.id === hoveredPoint.variable.id) || {}
                 )}
               </text>
             </g>
@@ -305,15 +378,35 @@ export default function VariableGraph({
         </svg>
       </div>
 
-      {/* Compounds strip */}
-      <button className="w-[22px] bg-black flex items-center justify-center hover:bg-gray-900 transition-colors">
-        <span
-          className="text-[7px] tracking-[0.15em] text-gray-600 font-bold"
-          style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
-        >
-          COMPOUNDS
-        </span>
-      </button>
+      {/* Right panel: Viewport selector + Compounds */}
+      <div className="w-[22px] bg-black flex flex-col">
+        {/* Viewport buttons */}
+        <div className="flex flex-col items-center py-1 gap-0.5 border-b border-gray-800">
+          {Object.entries(VIEWPORTS).map(([key, config]) => (
+            <button
+              key={key}
+              onClick={() => handleViewportChange(key)}
+              className={`w-4 h-4 text-[6px] font-bold rounded-sm transition-colors ${
+                viewport === key
+                  ? 'bg-white text-black'
+                  : 'bg-transparent text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              {config.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Compounds button */}
+        <button className="flex-1 flex items-center justify-center hover:bg-gray-900 transition-colors">
+          <span
+            className="text-[7px] tracking-[0.15em] text-gray-600 font-bold"
+            style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+          >
+            COMPOUNDS
+          </span>
+        </button>
+      </div>
     </div>
   );
 }
