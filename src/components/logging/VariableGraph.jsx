@@ -140,28 +140,27 @@ export default function VariableGraph({
   return (
     <div className="h-[130px] bg-white border-b-2 border-black flex">
       <div className="flex-1 relative overflow-hidden">
+        {/* CSS grid background - tiles correctly at any container size */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: 'linear-gradient(#e8e8e8 1px, transparent 1px), linear-gradient(90deg, #e8e8e8 1px, transparent 1px)',
+            backgroundSize: '5px 5px'
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: 'linear-gradient(#ccc 1px, transparent 1px), linear-gradient(90deg, #ccc 1px, transparent 1px)',
+            backgroundSize: '25px 25px'
+          }}
+        />
+
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className="w-full h-full"
+          preserveAspectRatio="none"
+          className="absolute inset-0 w-full h-full"
         >
-          {/* Graph area background with grid */}
-          <defs>
-            <pattern id="smallGrid" width="5" height="5.5" patternUnits="userSpaceOnUse">
-              <path d="M 5 0 L 0 0 0 5.5" fill="none" stroke="#e8e8e8" strokeWidth="0.5"/>
-            </pattern>
-            <pattern id="grid" width="25" height="22" patternUnits="userSpaceOnUse">
-              <rect width="25" height="22" fill="url(#smallGrid)"/>
-              <path d="M 25 0 L 0 0 0 22" fill="none" stroke="#ccc" strokeWidth="0.5"/>
-            </pattern>
-          </defs>
-
-          <rect
-            x={padding.left}
-            y={padding.top}
-            width={graphWidth}
-            height={graphHeight}
-            fill="url(#grid)"
-          />
 
           {/* Center line (normalized 0) */}
           <line
