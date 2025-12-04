@@ -14,12 +14,12 @@ export default function LoggingPage() {
     bodyweight: 2,
     waist: -0.5,
     sleep: 0.5,
-    energy: 0,
+    energy: 1,
     mood: 2,
   });
 
-  // Generate mock history data for 29 days (excluding today)
-  const baseHistory = useMemo(() => generateMockHistory(29), []);
+  // Generate mock history data for full year (all viewports have data)
+  const baseHistory = useMemo(() => generateMockHistory(365), []);
 
   // Merge base history with current slider values for live updates
   const liveHistory = useMemo(() => {
@@ -35,12 +35,24 @@ export default function LoggingPage() {
   const graphVariables = useMemo(() => [
     {
       id: 'bodyweight',
-      label: 'BODYWEIGHT',
+      label: 'WEIGHT',
       baseline: 80,
       maxAbsValue: 10,
       stepSize: 0.5,
       unit: 'kg',
       color: '#2563eb',
+      marker: 'circle',
+      loggingMode: 'point_in_time'
+    },
+    {
+      id: 'waist',
+      label: 'WAIST',
+      baseline: 85,
+      maxAbsValue: 5,
+      stepSize: 0.5,
+      unit: 'cm',
+      color: '#8b5cf6',
+      marker: 'square',
       loggingMode: 'point_in_time'
     },
     {
@@ -51,6 +63,7 @@ export default function LoggingPage() {
       stepSize: 0.25,
       unit: 'hrs',
       color: '#22c55e',
+      marker: 'square',
       loggingMode: 'summary'
     },
     {
@@ -61,6 +74,7 @@ export default function LoggingPage() {
       stepSize: 0.5,
       unit: '/10',
       color: '#ec4899',
+      marker: 'circle',
       loggingMode: 'summary'
     },
     {
@@ -71,6 +85,7 @@ export default function LoggingPage() {
       stepSize: 1,
       unit: '/10',
       color: '#06b6d4',
+      marker: 'triangle',
       loggingMode: 'summary'
     },
   ], []);

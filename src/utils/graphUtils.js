@@ -346,9 +346,9 @@ export function getLinePath(points) {
 }
 
 /**
- * Generate mock history data for testing
+ * Generate mock history data for testing (full year for all viewports)
  */
-export function generateMockHistory(days = 30) {
+export function generateMockHistory(days = 365) {
   const history = [];
   const today = new Date();
 
@@ -356,13 +356,38 @@ export function generateMockHistory(days = 30) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
 
+    // Use different wave patterns to create realistic-looking data
+    const dayOfYear = i;
+    const weekCycle = (i % 7) / 7;
+    const monthCycle = (i % 30) / 30;
+
     history.push({
       date: date.toISOString().split('T')[0],
       values: {
-        sleep: Math.sin((i / days) * Math.PI * 2) * 2.8,
-        energy: Math.sin((i / days) * Math.PI * 2.5 + 1) * 4.5,
-        mood: Math.sin((i / days) * Math.PI * 3) * 4.5,
-        bodyweight: Math.sin((i / days) * Math.PI * 2 + 0.5) * 8 + i * 0.05,
+        // Sleep: 7hrs baseline, varies ±3hrs, weekly pattern + longer trend
+        sleep: Math.sin(weekCycle * Math.PI * 2) * 1.5 +
+               Math.sin((dayOfYear / 60) * Math.PI * 2) * 1.2 +
+               (Math.random() - 0.5) * 0.5,
+
+        // Energy: 5 baseline, varies ±5, follows sleep loosely
+        energy: Math.sin(weekCycle * Math.PI * 2 + 0.5) * 2 +
+                Math.sin((dayOfYear / 45) * Math.PI * 2) * 2 +
+                (Math.random() - 0.5) * 1,
+
+        // Mood: 5 baseline, varies ±5, monthly cycle
+        mood: Math.sin(monthCycle * Math.PI * 2) * 2 +
+              Math.sin((dayOfYear / 90) * Math.PI * 2) * 2 +
+              (Math.random() - 0.5) * 1,
+
+        // Bodyweight: gradual trend over year + weekly fluctuations
+        bodyweight: Math.sin(weekCycle * Math.PI * 2) * 0.5 +
+                    Math.sin((dayOfYear / 180) * Math.PI) * 3 +
+                    (dayOfYear / 365) * 2,
+
+        // Waist: follows bodyweight pattern loosely
+        waist: Math.sin(weekCycle * Math.PI * 2) * 0.3 +
+               Math.sin((dayOfYear / 180) * Math.PI) * 2 +
+               (dayOfYear / 365) * 1.5,
       },
     });
   }
