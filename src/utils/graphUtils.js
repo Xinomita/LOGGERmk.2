@@ -167,11 +167,11 @@ export function generateMockHistory(days = 30) {
     history.push({
       date: date.toISOString().split('T')[0],
       values: {
-        // Mock values with larger variations to utilize vertical space
-        sleep: Math.sin(i / 5) * 2.2 + Math.cos(i / 3) * 0.8, // ±3 range
-        energy: Math.cos(i / 7) * 3.5 + Math.sin(i / 4) * 1.2, // ±4.7 range
-        mood: Math.sin(i / 4) * 3.8 + Math.cos(i / 6) * 0.9, // ±4.7 range
-        bodyweight: Math.sin(i / 8) * 4.5 + i * 0.08, // Gradual trend with waves
+        // Single sine waves with correct amplitudes to reach domain extremes
+        sleep: Math.sin((i / days) * Math.PI * 2) * 2.8, // Reaches ±2.8 (close to ±3)
+        energy: Math.sin((i / days) * Math.PI * 2.5 + 1) * 4.5, // Reaches ±4.5 (close to ±5)
+        mood: Math.sin((i / days) * Math.PI * 3) * 4.5, // Reaches ±4.5 (close to ±5)
+        bodyweight: Math.sin((i / days) * Math.PI * 2 + 0.5) * 8 + (i * 0.05), // Waves + trend
       },
     });
   }
