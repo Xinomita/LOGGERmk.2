@@ -1,43 +1,78 @@
-import React from 'react';
+import React, { useState } from 'react';
+import CompoundsHeader from '../components/compounds/CompoundsHeader';
+import CompoundsStatusBanner from '../components/compounds/CompoundsStatusBanner';
+import HalfLifeGraph from '../components/compounds/HalfLifeGraph';
+import CompoundLegend from '../components/compounds/CompoundLegend';
+import StackBuilder from '../components/compounds/StackBuilder';
+import AddCompoundPanel from '../components/compounds/AddCompoundPanel';
+import FinalizeButton from '../components/compounds/FinalizeButton';
+import CompoundHistory from '../components/compounds/CompoundHistory';
 
 export default function CompoundsPage() {
+  const [activeCompound, setActiveCompound] = useState(null);
+  const [showAddPanel, setShowAddPanel] = useState(false);
+  const [targetStack, setTargetStack] = useState(null);
+
+  const handleAddCompound = (stackId) => {
+    setTargetStack(stackId);
+    setShowAddPanel(true);
+  };
+
+  const handleCompoundAdded = (compoundData) => {
+    console.log('Compound added:', compoundData);
+    setShowAddPanel(false);
+    setTargetStack(null);
+  };
+
+  const handleFinalize = () => {
+    console.log('Finalizing stack - generating AI report');
+    // TODO: Navigate to AI page with report
+  };
+
+  const handlePromoteCompound = (entry) => {
+    console.log('Promoting to permanent:', entry);
+    setTargetStack('morning'); // Default to morning stack
+    setShowAddPanel(true);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-6">Compounds Page</h1>
-        <p className="text-gray-400">
-          Stack configuration, permanent compound management, half-life visualization
-        </p>
+    <div className="min-h-screen bg-[#0a0a0a] flex items-start justify-center p-5">
+      {/* Main container - dark theme, inverted from logging page */}
+      <div className="w-full max-w-[375px] bg-black border-[3px] border-white font-mono">
+        {/* Header - white bg (inverted from logging's black) */}
+        <CompoundsHeader />
 
-        <div className="mt-8 space-y-4">
-          <section className="border-2 border-white p-6">
-            <h2 className="text-xl font-bold mb-2">Half-Life Graph</h2>
-            <p className="text-sm text-gray-400">
-              Concentration curves per compound with NOW marker will appear here
-            </p>
-          </section>
+        {/* Status banner - white bg with interaction alerts */}
+        <CompoundsStatusBanner />
 
-          <section className="border-2 border-white p-6">
-            <h2 className="text-xl font-bold mb-2">Stack Builder</h2>
-            <p className="text-sm text-gray-400">
-              Compound stacks configuration will appear here
-            </p>
-          </section>
+        {/* Half-life graph - dark bg, concentration curves */}
+        <HalfLifeGraph activeCompound={activeCompound} />
 
-          <section className="border-2 border-white p-6">
-            <h2 className="text-xl font-bold mb-2">Finalize Stack</h2>
-            <p className="text-sm text-gray-400">
-              Button to generate comprehensive AI report will appear here
-            </p>
-          </section>
+        {/* Compound legend - dark, shows active compounds */}
+        <CompoundLegend
+          activeCompound={activeCompound}
+          onCompoundClick={setActiveCompound}
+        />
 
-          <section className="border-2 border-white p-6">
-            <h2 className="text-xl font-bold mb-2">Compound History</h2>
-            <p className="text-sm text-gray-400">
-              Previous quick-adds available to promote to permanent will appear here
-            </p>
-          </section>
-        </div>
+        {/* Stack builder - white bg section (main interaction area) */}
+        <StackBuilder onAddCompound={handleAddCompound} />
+
+        {/* Add compound panel - expandable */}
+        <AddCompoundPanel
+          isOpen={showAddPanel}
+          onClose={() => {
+            setShowAddPanel(false);
+            setTargetStack(null);
+          }}
+          onAdd={handleCompoundAdded}
+          targetStack={targetStack}
+        />
+
+        {/* Finalize button - prominent CTA */}
+        <FinalizeButton onFinalize={handleFinalize} />
+
+        {/* Compound history - quick-adds from logging page */}
+        <CompoundHistory onPromote={handlePromoteCompound} />
       </div>
     </div>
   );
