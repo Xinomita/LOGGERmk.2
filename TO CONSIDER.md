@@ -47,3 +47,15 @@ Development notes, ideas, and features to implement later.
 **Key distinction**: Dynamic sliders track absolute measurements that drift over time. Fixed sliders track subjective ratings on a consistent scale.
 
 ---
+
+## Compound-Specific Notes
+
+**Was thinking of adding a specifier for the notes page - so you could select a specific compound and get compound/logger/etc specific notes, idk -- not sure though.**
+
+- Could tag notes with compound associations
+- Filter notes by compound when reviewing
+- Useful for tracking side effects, observations, timing adjustments per compound
+- Alternative: Keep notes general, let AI parse compound mentions during weekly summary
+- Consider: Does this add friction to a quick-entry flow?
+
+---

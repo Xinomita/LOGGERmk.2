@@ -2,77 +2,66 @@ import React, { useState, useRef, useEffect } from 'react';
 
 export default function NotesButton() {
   const [noteText, setNoteText] = useState('');
-  const [isFocused, setIsFocused] = useState(false);
+  const [isActive, setIsActive] = useState(false);
+  const [height, setHeight] = useState(28); // Single line height
   const textareaRef = useRef(null);
+  const containerRef = useRef(null);
 
-  const handleSave = () => {
+  // Auto-resize textarea and expand upward
+  useEffect(() => {
+    if (textareaRef.current) {
+      // Reset to measure true scroll height
+      textareaRef.current.style.height = '28px';
+      const scrollHeight = textareaRef.current.scrollHeight;
+      const newHeight = Math.max(28, Math.min(scrollHeight, 120)); // Max 120px
+      setHeight(newHeight);
+      textareaRef.current.style.height = `${newHeight}px`;
+    }
+  }, [noteText]);
+
+  const handleBlur = () => {
+    // Only deactivate if empty
+    if (!noteText.trim()) {
+      setIsActive(false);
+    }
     if (noteText.trim()) {
       console.log('Note saved:', noteText);
       // TODO: Persist to store
     }
   };
 
-  // Auto-save on blur if there's content
-  const handleBlur = () => {
-    setIsFocused(false);
-    if (noteText.trim()) {
-      handleSave();
-    }
+  const handleFocus = () => {
+    setIsActive(true);
   };
 
-  return (
-    <div className="relative bg-black">
-      {/* Expanded overlay - renders above the input, overlaying content above */}
-      {isFocused && (
-        <div
-          className="absolute bottom-full left-0 right-0 bg-black border-t border-gray-700 z-20"
-          style={{ boxShadow: '0 -4px 12px rgba(0,0,0,0.5)' }}
-        >
-          <textarea
-            ref={textareaRef}
-            value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
-            onBlur={handleBlur}
-            placeholder="Add detailed notes..."
-            className="w-full h-24 bg-[#1a1a1a] border-0 p-2 text-[10px] text-white font-medium outline-none resize-none placeholder:text-gray-500"
-            autoFocus
-          />
-          <div className="flex justify-between items-center px-2 pb-1.5">
-            <span className="text-[7px] text-gray-600">Auto-saves on blur</span>
-            <button
-              onClick={() => {
-                handleSave();
-                setIsFocused(false);
-              }}
-              className="px-2 py-0.5 bg-white text-[8px] text-black font-bold hover:bg-green-500 transition-colors"
-            >
-              DONE
-            </button>
-          </div>
-        </div>
-      )}
+  // Calculate upward expansion offset
+  const expandOffset = height - 28;
 
-      {/* Always-visible input bar */}
-      <div className="h-7 flex items-center px-2 gap-2">
-        <span className="text-[9px] tracking-[0.12em] text-gray-600 font-bold shrink-0">
+  return (
+    <div
+      className="relative bg-black"
+      style={{ marginTop: isActive ? `-${expandOffset}px` : 0 }}
+    >
+      <div className="flex items-end px-2 py-1">
+        <span className="text-[9px] tracking-[0.12em] text-gray-600 font-bold shrink-0 pb-1.5">
           NOTES
         </span>
-        <input
-          type="text"
+        <textarea
+          ref={textareaRef}
           value={noteText}
           onChange={(e) => setNoteText(e.target.value)}
-          onFocus={() => setIsFocused(true)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           placeholder="Type to add notes..."
-          className="flex-1 h-5 bg-[#1a1a1a] border border-gray-700 px-1.5 text-[9px] text-white font-medium outline-none focus:border-gray-500 placeholder:text-gray-500"
+          rows={1}
+          className={`flex-1 ml-2 bg-transparent border-0 px-1.5 py-1 text-[10px] text-white font-medium outline-none resize-none placeholder:text-gray-600 transition-colors ${
+            isActive ? 'bg-[#1a1a1a]' : ''
+          }`}
+          style={{
+            height: `${height}px`,
+            lineHeight: '18px',
+          }}
         />
-        {noteText.trim() && !isFocused && (
-          <button
-            onClick={() => setNoteText('')}
-            className="text-[10px] text-gray-500 hover:text-gray-300"
-          >
-            ✓
-          </button>
-        )}
       </div>
     </div>
   );
