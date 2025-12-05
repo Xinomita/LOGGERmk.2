@@ -1,55 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 export default function NotesButton() {
-  const [isExpanded, setIsExpanded] = useState(false);
   const [noteText, setNoteText] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const textareaRef = useRef(null);
 
   const handleSave = () => {
     if (noteText.trim()) {
       console.log('Note saved:', noteText);
       // TODO: Persist to store
     }
-    setIsExpanded(false);
+  };
+
+  // Auto-save on blur if there's content
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (noteText.trim()) {
+      handleSave();
+    }
   };
 
   return (
-    <div className="bg-black">
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="h-7 w-full flex items-center justify-between px-2 hover:bg-gray-900 transition-colors"
-      >
-        <span className="text-[9px] tracking-[0.12em] text-gray-600 font-bold">
-          NOTES
-        </span>
-        <span className="text-[10px] text-gray-600">
-          {isExpanded ? '▲' : '▼'}
-        </span>
-      </button>
-
-      {isExpanded && (
-        <div className="px-2 pb-2">
+    <div className="relative bg-black">
+      {/* Expanded overlay - renders above the input, overlaying content above */}
+      {isFocused && (
+        <div
+          className="absolute bottom-full left-0 right-0 bg-black border-t border-gray-700 z-20"
+          style={{ boxShadow: '0 -4px 12px rgba(0,0,0,0.5)' }}
+        >
           <textarea
+            ref={textareaRef}
             value={noteText}
             onChange={(e) => setNoteText(e.target.value)}
-            placeholder="Add notes for today..."
-            className="w-full h-20 bg-[#1a1a1a] border border-gray-700 p-2 text-[10px] text-white font-medium outline-none resize-none focus:border-gray-500 placeholder:text-gray-500"
+            onBlur={handleBlur}
+            placeholder="Add detailed notes..."
+            className="w-full h-24 bg-[#1a1a1a] border-0 p-2 text-[10px] text-white font-medium outline-none resize-none placeholder:text-gray-500"
+            autoFocus
           />
-          <div className="flex justify-end gap-1 mt-1">
+          <div className="flex justify-between items-center px-2 pb-1.5">
+            <span className="text-[7px] text-gray-600">Auto-saves on blur</span>
             <button
-              onClick={() => setIsExpanded(false)}
-              className="px-2 py-1 text-[8px] text-gray-500 hover:text-gray-300 font-bold"
+              onClick={() => {
+                handleSave();
+                setIsFocused(false);
+              }}
+              className="px-2 py-0.5 bg-white text-[8px] text-black font-bold hover:bg-green-500 transition-colors"
             >
-              CANCEL
-            </button>
-            <button
-              onClick={handleSave}
-              className="px-2 py-1 bg-white text-[8px] text-black font-bold hover:bg-green-500 transition-colors"
-            >
-              SAVE
+              DONE
             </button>
           </div>
         </div>
       )}
+
+      {/* Always-visible input bar */}
+      <div className="h-7 flex items-center px-2 gap-2">
+        <span className="text-[9px] tracking-[0.12em] text-gray-600 font-bold shrink-0">
+          NOTES
+        </span>
+        <input
+          type="text"
+          value={noteText}
+          onChange={(e) => setNoteText(e.target.value)}
+          onFocus={() => setIsFocused(true)}
+          placeholder="Type to add notes..."
+          className="flex-1 h-5 bg-[#1a1a1a] border border-gray-700 px-1.5 text-[9px] text-white font-medium outline-none focus:border-gray-500 placeholder:text-gray-500"
+        />
+        {noteText.trim() && !isFocused && (
+          <button
+            onClick={() => setNoteText('')}
+            className="text-[10px] text-gray-500 hover:text-gray-300"
+          >
+            ✓
+          </button>
+        )}
+      </div>
     </div>
   );
 }
