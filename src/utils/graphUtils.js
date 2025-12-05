@@ -216,6 +216,44 @@ export function aggregateByDay(history) {
 }
 
 /**
+ * Aggregate data points by week (for year view)
+ */
+export function aggregateByWeek(history) {
+  const byWeek = {};
+
+  history.forEach(entry => {
+    const date = new Date(entry.date);
+    // Get week start (Sunday)
+    const weekStart = new Date(date);
+    weekStart.setDate(date.getDate() - date.getDay());
+    const weekKey = weekStart.toISOString().split('T')[0];
+
+    if (!byWeek[weekKey]) {
+      byWeek[weekKey] = { date: weekKey, values: {}, counts: {} };
+    }
+
+    Object.entries(entry.values || {}).forEach(([varId, value]) => {
+      if (value !== null && value !== undefined) {
+        byWeek[weekKey].values[varId] = (byWeek[weekKey].values[varId] || 0) + value;
+        byWeek[weekKey].counts[varId] = (byWeek[weekKey].counts[varId] || 0) + 1;
+      }
+    });
+  });
+
+  return Object.values(byWeek)
+    .map(week => ({
+      date: week.date,
+      values: Object.fromEntries(
+        Object.entries(week.values).map(([varId, sum]) => [
+          varId,
+          sum / week.counts[varId],
+        ])
+      ),
+    }))
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
+/**
  * Filter history to viewport range
  */
 export function filterToViewport(history, viewport, referenceDate = new Date()) {
@@ -225,7 +263,12 @@ export function filterToViewport(history, viewport, referenceDate = new Date()) 
 
   let filtered = history.filter(entry => new Date(entry.date) >= cutoff);
 
-  if (VIEWPORTS[viewport]?.aggregate) {
+  // Year view: aggregate by week
+  if (viewport === 'year') {
+    filtered = aggregateByWeek(filtered);
+  }
+  // Month view: aggregate by day (if multiple entries per day)
+  else if (VIEWPORTS[viewport]?.aggregate) {
     filtered = aggregateByDay(filtered);
   }
 

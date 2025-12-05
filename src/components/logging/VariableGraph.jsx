@@ -60,9 +60,9 @@ export default function VariableGraph({
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
 
-  // Tighter layout
+  // Layout with enough space for axis labels
   const height = 130;
-  const padding = { top: 6, right: 6, bottom: 14, left: 4 };
+  const padding = { top: 6, right: 6, bottom: 16, left: 8 };
   const graphHeight = height - padding.top - padding.bottom;
   const graphWidth = containerWidth - padding.left - padding.right;
 

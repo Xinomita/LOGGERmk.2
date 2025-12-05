@@ -40,19 +40,19 @@ export default function LoggingPage() {
       maxAbsValue: 10,
       stepSize: 0.5,
       unit: 'kg',
-      color: '#2563eb',
+      color: '#2563eb',  // Blue - matches slider
       marker: 'circle',
       loggingMode: 'point_in_time'
     },
     {
       id: 'waist',
       label: 'WAIST',
-      baseline: 85,
-      maxAbsValue: 5,
+      baseline: 75,
+      maxAbsValue: 8,
       stepSize: 0.5,
       unit: 'cm',
-      color: '#8b5cf6',
-      marker: 'square',
+      color: '#d97706',  // Orange - matches slider
+      marker: 'diamond',
       loggingMode: 'point_in_time'
     },
     {
@@ -62,7 +62,7 @@ export default function LoggingPage() {
       maxAbsValue: 3,
       stepSize: 0.25,
       unit: 'hrs',
-      color: '#22c55e',
+      color: '#22c55e',  // Green - matches slider
       marker: 'square',
       loggingMode: 'summary'
     },
@@ -73,7 +73,7 @@ export default function LoggingPage() {
       maxAbsValue: 5,
       stepSize: 0.5,
       unit: '/10',
-      color: '#ec4899',
+      color: '#ec4899',  // Pink - matches slider
       marker: 'circle',
       loggingMode: 'summary'
     },
@@ -84,7 +84,7 @@ export default function LoggingPage() {
       maxAbsValue: 5,
       stepSize: 1,
       unit: '/10',
-      color: '#06b6d4',
+      color: '#06b6d4',  // Cyan - matches slider
       marker: 'triangle',
       loggingMode: 'summary'
     },
